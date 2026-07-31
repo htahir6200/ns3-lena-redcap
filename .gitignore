@@ -1,0 +1,44 @@
+# Python
+.venv-plots/
+__pycache__/
+*.pyc
+.Python
+.mplconfig/
+
+# Local cmake / logs / caches
+cmake/
+*.log
+.DS_Store
+
+# Research materials (kept locally; not published on GitHub)
+paper/
+docs/
+scripts/
+results/
+UPSTREAM_README.md
+
+# ns-3 build outputs (huge; rebuild locally)
+ns-3.38/build/
+ns-3.38/cmake-cache/
+ns-3.38/cmake-cache*/
+ns-3.38/.lock-ns3_*
+ns-3.38/Results/
+ns-3.38/**/CMakeFiles/
+ns-3.38/**/Makefile
+ns-3.38/**/cmake_install.cmake
+ns-3.38/**/*.o
+ns-3.38/**/*.dylib
+ns-3.38/**/*.a
+ns-3.38/default/
+
+# Upstream / setup snapshots (not part of our fork work)
+ns-3.38-base/
+ns-3.38-official.tar.bz2
+_tudo_nr/
+_tudo_scratch/
+
+# Editor
+.idea/
+.vscode/
+*.swp
+.tools/
