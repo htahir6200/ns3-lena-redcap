@@ -13,8 +13,11 @@ cmake/
 # Research materials (kept locally; not published on GitHub)
 paper/
 docs/
-scripts/
 results/
+# Campaign scripts are published with the simulator (IoTJ R1: paper cites them).
+scripts/**/__pycache__/
+scripts/*.plist
+scripts/*launchd.sh
 UPSTREAM_README.md
 
 # ns-3 build outputs (huge; rebuild locally)
@@ -42,3 +45,4 @@ _tudo_scratch/
 .vscode/
 *.swp
 .tools/
+scripts/recreate_github_repo_clean.sh

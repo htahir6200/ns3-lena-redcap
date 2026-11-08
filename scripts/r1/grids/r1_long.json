@@ -1,0 +1,45 @@
+[
+ {
+  "name": "long",
+  "red_cap_config": [
+   1,
+   2,
+   3
+  ],
+  "num_ues": 40,
+  "interval_s": 0.05,
+  "sim_time": [
+   72.0,
+   144.0
+  ],
+  "drain_s": 10.0,
+  "seeds": [
+   1,
+   2,
+   3,
+   4,
+   5
+  ]
+ },
+ {
+  "name": "longd",
+  "red_cap_config": 3,
+  "num_ues": [
+   80,
+   160
+  ],
+  "interval_s": 0.2,
+  "sim_time": [
+   72.0,
+   144.0
+  ],
+  "drain_s": 10.0,
+  "seeds": [
+   1,
+   2,
+   3,
+   4,
+   5
+  ]
+ }
+]

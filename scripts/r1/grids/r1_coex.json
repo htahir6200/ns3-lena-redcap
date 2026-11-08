@@ -1,0 +1,81 @@
+[
+ {
+  "name": "coexb",
+  "red_cap_config": [
+   1,
+   2,
+   3
+  ],
+  "num_ues": 40,
+  "interval_s": 0.5,
+  "embb_ues": [
+   0,
+   5,
+   10
+  ],
+  "drain_s": 10.0,
+  "seeds": [
+   1,
+   2,
+   3,
+   4,
+   5
+  ]
+ },
+ {
+  "name": "coex1",
+  "red_cap_config": [
+   1,
+   2,
+   3
+  ],
+  "num_ues": 40,
+  "interval_s": 0.1,
+  "embb_ues": [
+   0,
+   5,
+   10
+  ],
+  "drain_s": 10.0,
+  "seeds": [
+   1,
+   2,
+   3,
+   4,
+   5,
+   6,
+   7,
+   8,
+   9,
+   10
+  ]
+ },
+ {
+  "name": "coex2",
+  "red_cap_config": [
+   1,
+   2,
+   3
+  ],
+  "num_ues": 80,
+  "interval_s": 0.2,
+  "embb_ues": [
+   0,
+   5,
+   10
+  ],
+  "drain_s": 10.0,
+  "seeds": [
+   1,
+   2,
+   3,
+   4,
+   5,
+   6,
+   7,
+   8,
+   9,
+   10
+  ]
+ }
+]

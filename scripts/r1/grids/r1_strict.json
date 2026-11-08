@@ -1,0 +1,45 @@
+[
+ {
+  "name": "strict",
+  "red_cap_config": [
+   1,
+   2,
+   3
+  ],
+  "num_ues": 40,
+  "interval_s": [
+   0.2,
+   0.1,
+   0.05
+  ],
+  "strict_phy": true,
+  "seeds": [
+   1,
+   2,
+   3,
+   4,
+   5
+  ]
+ },
+ {
+  "name": "strictd",
+  "red_cap_config": [
+   1,
+   2,
+   3
+  ],
+  "num_ues": [
+   80,
+   160
+  ],
+  "interval_s": 0.2,
+  "strict_phy": true,
+  "seeds": [
+   1,
+   2,
+   3,
+   4,
+   5
+  ]
+ }
+]

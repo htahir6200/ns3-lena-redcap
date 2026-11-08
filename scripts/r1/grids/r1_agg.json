@@ -1,0 +1,87 @@
+[
+ {
+  "name": "agg32_n20",
+  "red_cap_config": [
+   1,
+   3
+  ],
+  "num_ues": 20,
+  "interval_s": 0.025,
+  "drain_s": 10.0,
+  "seeds": [
+   1,
+   2,
+   3,
+   4,
+   5
+  ]
+ },
+ {
+  "name": "agg32_n40",
+  "red_cap_config": [
+   1,
+   3
+  ],
+  "num_ues": 40,
+  "interval_s": 0.05,
+  "drain_s": 10.0,
+  "seeds": [
+   1,
+   2,
+   3,
+   4,
+   5
+  ]
+ },
+ {
+  "name": "agg32_n80",
+  "red_cap_config": [
+   1,
+   3
+  ],
+  "num_ues": 80,
+  "interval_s": 0.1,
+  "drain_s": 10.0,
+  "seeds": [
+   1,
+   2,
+   3,
+   4,
+   5
+  ]
+ },
+ {
+  "name": "agg32_n160",
+  "red_cap_config": [
+   1,
+   3
+  ],
+  "num_ues": 160,
+  "interval_s": 0.2,
+  "drain_s": 10.0,
+  "seeds": [
+   1,
+   2,
+   3,
+   4,
+   5
+  ]
+ },
+ {
+  "name": "agg32_n320",
+  "red_cap_config": [
+   1,
+   3
+  ],
+  "num_ues": 320,
+  "interval_s": 0.4,
+  "drain_s": 10.0,
+  "seeds": [
+   1,
+   2,
+   3,
+   4,
+   5
+  ]
+ }
+]

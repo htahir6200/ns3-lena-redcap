@@ -1,0 +1,76 @@
+[
+ {
+  "name": "load",
+  "red_cap_config": [
+   1,
+   2,
+   3
+  ],
+  "num_ues": 40,
+  "interval_s": [
+   0.2,
+   0.1,
+   0.05
+  ],
+  "drain_s": 10.0,
+  "seeds": [
+   1,
+   2,
+   3,
+   4,
+   5,
+   6,
+   7,
+   8,
+   9,
+   10
+  ]
+ },
+ {
+  "name": "dense02",
+  "red_cap_config": [
+   1,
+   2,
+   3
+  ],
+  "num_ues": [
+   80,
+   160
+  ],
+  "interval_s": 0.2,
+  "drain_s": 10.0,
+  "seeds": [
+   1,
+   2,
+   3,
+   4,
+   5,
+   6,
+   7,
+   8,
+   9,
+   10
+  ]
+ },
+ {
+  "name": "dense05",
+  "red_cap_config": [
+   1,
+   2,
+   3
+  ],
+  "num_ues": [
+   80,
+   160
+  ],
+  "interval_s": 0.5,
+  "drain_s": 10.0,
+  "seeds": [
+   1,
+   2,
+   3,
+   4,
+   5
+  ]
+ }
+]
