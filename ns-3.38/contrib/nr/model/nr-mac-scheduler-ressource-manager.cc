@@ -452,6 +452,33 @@ namespace ns3
     }
 
 
+    void
+    NrMacSchedulerRessourceManager::guardedMark(size_t row, size_t col, int ue)
+    {
+        // IoTJ R1: never let a data allocation overwrite a reserved cell (PUCCH, CORESET,
+        // PBCH, PRACH, ...) or another UE's allocation. Several marking paths wrote whole
+        // rectangles without checking; an overwritten PUCCH cell later became FREE on grid
+        // reset, so UL grants could include the PUCCH symbol and collide at slot boundaries.
+        if (!m_guardMarks)
+        {
+            m_ressourcen[row][col] = ue;
+            return;
+        }
+        const int cur = m_ressourcen[row][col];
+        if (cur == 0 || cur == ue)
+        {
+            m_ressourcen[row][col] = ue;
+        }
+        else if (cur > 0)
+        {
+            NrCampaignStats::SoftFail("SCHED_MARK_OVER_OTHER_UE@gnb");
+        }
+        else
+        {
+            NrCampaignStats::SoftFail("SCHED_MARK_OVER_RESERVED@gnb");
+        }
+    }
+
     RessourceSet*
     NrMacSchedulerRessourceManager::scheduleData(uint16_t bwpIndex,uint16_t ue,uint32_t numRB, LteNrTddSlotType slotType, bool Msg3, const SfnSf& sfnSf ,RessourceSet* res)
     {   
@@ -680,7 +707,7 @@ namespace ns3
                                         {
                                             break;
                                         }
-                                        m_ressourcen[row][endRB-markCounter] = ue;
+                                        guardedMark(row, endRB-markCounter, ue);
                                     }
                                 }
                                 
@@ -745,7 +772,7 @@ namespace ns3
                                 {
                                     for( uint8_t i_schedSymbol= 0;i_schedSymbol<usedSymbols; ++i_schedSymbol)
                                     {
-                                        m_ressourcen[i+symNum+i_schedSymbol][rb-markCounter] = ue;
+                                        guardedMark(i+symNum+i_schedSymbol, rb-markCounter, ue);
                                     }
                                 }
                                 
@@ -802,7 +829,7 @@ namespace ns3
                                 {
                                     for( uint8_t i_schedSymbol= 0;i_schedSymbol<usedSymbols; ++i_schedSymbol)
                                     {
-                                        m_ressourcen[i+symNum-i_schedSymbol][bwpRessourceMap.at(bwpIndex).getLowerBorder()+markCounter] = ue;
+                                        guardedMark(i+symNum-i_schedSymbol, bwpRessourceMap.at(bwpIndex).getLowerBorder()+markCounter, ue);
                                     }
                                 }
 
@@ -812,7 +839,7 @@ namespace ns3
                                 for(uint markCounter = 0;markCounter < numRB; ++markCounter )
                                 {
 
-                                 m_ressourcen[i+symNum][rb-numRB+markCounter+1] = ue;
+                                 guardedMark(i+symNum, rb-numRB+markCounter+1, ue);
                                 
                                 }
                             }
@@ -935,7 +962,7 @@ namespace ns3
                     }
                     for (uint8_t s = 0; s < nSym; ++s)
                     {
-                        m_ressourcen[baseIdx + startSym + s][lowerBorder + markCounter] = ue;
+                        guardedMark(baseIdx + startSym + s, lowerBorder + markCounter, ue);
                     }
                     ++markedRB;
                 }
@@ -1152,7 +1179,7 @@ namespace ns3
 
                 if(m_ressourcen[slotIndex+sym][rb] == 0)
                 {
-                    m_ressourcen[slotIndex+sym][rb] = ue;
+                    guardedMark(slotIndex+sym, rb, ue);
                 }
                 else{
                     std::cout<<"Something is wrong with the advanced scheduling"<<std::endl;
@@ -1361,6 +1388,7 @@ namespace ns3
         int16_t ue = 0;
         size_t bwpLowerBorder = bwpRessourceMap.at(bwpIndex).getLowerBorder(); 
         uint8_t dciSym =1;
+        uint8_t runSym = 0; // IoTJ R1: symbol (row) in which the current RB run started
         uint16_t startRb =0;
         uint16_t numRB = 0;
         for(uint8_t symbol = 0; symbol < m_numSym; ++symbol)
@@ -1455,6 +1483,9 @@ namespace ns3
                     else{
 
                         //create DCI
+                        // IoTJ R1: a run that started on the last RB of the previous row is only
+                        // closed here, on the next row; use the row where the run started.
+                        const uint8_t dciRowSym = m_fixDciRowSymbol ? runSym : symbol;
                         if(numRB >0 && ue>0 && !alreadySchedueled)
                         {
                             bool foundUe = false;
@@ -1471,12 +1502,12 @@ namespace ns3
 
                             dciSym = 1;
                             //count symbols for DCI — require full rectangle, not only the edge RB
-                            while (symbol + dciSym < m_numSym)
+                            while (dciRowSym + dciSym < m_numSym)
                             {
                                 bool fullRow = true;
                                 for (uint16_t iRB = 0; iRB < numRB; ++iRB)
                                 {
-                                    if (m_ressourcen[index + symbol + dciSym][startRb + iRB] != ue)
+                                    if (m_ressourcen[index + dciRowSym + dciSym][startRb + iRB] != ue)
                                     {
                                         fullRow = false;
                                         break;
@@ -1510,7 +1541,7 @@ namespace ns3
                                     }
                                     NS_FATAL_ERROR("Scheduled RNTI "<<ue<<" twice in a slot.");
                                 }
-                                dci = createSingleDCI(ue,symbol,dciSym,startRb,numRB,bwpIndex, m_Amc ,ueInfo, type);
+                                dci = createSingleDCI(ue,dciRowSym,dciSym,startRb,numRB,bwpIndex, m_Amc ,ueInfo, type);
                                 // std::cout<<"DcI tbsize: "<<dci->m_tbSize[0] << std::endl;
                                 // std::cout<<uint(dci->m_numSym)<<std::endl;
                                 if(ueInfo->transmitMsg3)
@@ -1519,7 +1550,7 @@ namespace ns3
                                     {
                                         for (uint16_t iRB = 0; iRB < numRB; ++iRB)
                                         {
-                                            m_ressourcen[index + symbol + iSym][startRb + iRB] =
+                                            m_ressourcen[index + dciRowSym + iSym][startRb + iRB] =
                                                 RessourceAllocationStatus::SCH_MSG3;
                                         }
                                     }
@@ -1533,6 +1564,7 @@ namespace ns3
                         ue = m_ressourcen[index+symbol][bwpLowerBorder+rb];
                         startRb = bwpLowerBorder+rb;
                         numRB =1;
+                        runSym = symbol;
                     }
             
                 }

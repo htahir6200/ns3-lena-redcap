@@ -130,6 +130,11 @@ namespace ns3 {
         /// IoTJ R1: if true, the DL active-UE pre-filter uses a non-reserving PDCCH check
         /// (the original code reserved a CCE per active DL UE before scheduling).
         void SetFixDlPdcchPrefilter(bool fix) { m_fixDlPdcchPrefilter = fix; }
+        /// IoTJ R1: refuse to overwrite reserved/other-UE cells when marking allocations.
+        void SetGuardMarks(bool g) { m_guardMarks = g; }
+        /// IoTJ R1: build a DCI from the row where its RB run started (fixes UL grants placed in
+        /// the PUCCH symbol when an allocation occupied only the last RB of a row).
+        void SetFixDciRowSymbol(bool f) { m_fixDciRowSymbol = f; }
         bool GetFixDlPdcchPrefilter() const { return m_fixDlPdcchPrefilter; }
         bool isAlreadyScheduled(uint16_t rnti, SfnSf sfnsf, uint8_t bwpID);
         void CreateSearchSpace(uint16_t rnti,uint16_t periodicity,uint16_t offset,uint16_t duration);  
@@ -167,6 +172,9 @@ namespace ns3 {
         bool m_use5MHz;
         uint16_t m_dlCceReserve{0};
         bool m_fixDlPdcchPrefilter{false};
+        bool m_guardMarks{false};
+        bool m_fixDciRowSymbol{false};
+        void guardedMark(size_t row, size_t col, int ue);
         uint16_t m_rbPerBwp{51}; //!< RBs (RBGs) per RedCap BWP; 51@20 MHz μ=1, 12@5 MHz μ=1
 
         protected:

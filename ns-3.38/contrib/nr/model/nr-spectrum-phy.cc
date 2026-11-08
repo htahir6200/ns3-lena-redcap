@@ -998,7 +998,14 @@ NrSpectrumPhy::StartRxData(const Ptr<NrSpectrumSignalParametersDataFrame>& param
             // the whole campaign (see docs/BUGFIX_dense_spectrum_hardening.md).
             if (Sum((*m_txPsd) * (*params->psd)) != 0.0)
             {
-                NrCampaignStats::SoftFail("PHY_UL_TX_FREQ_OVERLAP@ue");
+                {
+                    // IoTJ R1: split by sender. Overlap with a gNB DL signal is a half-duplex
+                    // timing effect; overlap with another UE's UL is a true PUSCH collision.
+                    Ptr<NrSpectrumPhy> peer = DynamicCast<NrSpectrumPhy>(params->txPhy);
+                    const bool fromGnb = peer && peer->IsEnb();
+                    NrCampaignStats::SoftFail(fromGnb ? "PHY_UL_TX_OVERLAP_GNB_DL@ue"
+                                                      : "PHY_UL_TX_FREQ_OVERLAP@ue");
+                }
                 NS_LOG_WARN("Transmissions overlap in frequency (cellId="
                             << params->cellId << "); ignoring peer PSD for this UE TX");
             }
