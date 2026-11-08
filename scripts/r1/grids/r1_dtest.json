@@ -1,0 +1,6 @@
+[
+ {"name":"de40","red_cap_config":3,"num_ues":40,"interval_s":[0.04,0.02],"drain_s":10.0,"fix_dl_pdcch_prefilter":true,"retx_bsr_timer_ms":80,"guard_sched_marks":true,"fix_dci_row_symbol":true,"seeds":[1]},
+ {"name":"de160","red_cap_config":3,"num_ues":160,"interval_s":0.2,"drain_s":10.0,"fix_dl_pdcch_prefilter":true,"retx_bsr_timer_ms":80,"guard_sched_marks":true,"fix_dci_row_symbol":true,"seeds":[1]},
+ {"name":"dmax","red_cap_config":2,"num_ues":40,"interval_s":0.025,"drain_s":10.0,"fix_dl_pdcch_prefilter":true,"retx_bsr_timer_ms":80,"guard_sched_marks":true,"fix_dci_row_symbol":true,"seeds":[1]},
+ {"name":"dmin","red_cap_config":1,"num_ues":40,"interval_s":0.05,"drain_s":10.0,"fix_dl_pdcch_prefilter":true,"retx_bsr_timer_ms":80,"guard_sched_marks":true,"fix_dci_row_symbol":true,"seeds":[2]}
+]

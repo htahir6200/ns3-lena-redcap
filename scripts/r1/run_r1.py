@@ -67,6 +67,9 @@ class Job:
     eredcap_power_offset_db: int = 6
     dl_cce_reserve: int = 0  # CCEs per CORESET occasion kept for DL DCIs (0 = off)
     fix_dl_pdcch_prefilter: bool = False  # non-reserving DL PDCCH pre-filter (R1 scheduler fix)
+    retx_bsr_timer_ms: int = 0  # UE retxBSR-Timer (TS 38.321); 0 = original behaviour
+    guard_sched_marks: bool = False  # refuse grid writes over reserved/other-UE cells
+    fix_dci_row_symbol: bool = False  # DCI symbol from the row where the RB run started
 
     @property
     def config_name(self) -> str:
@@ -98,6 +101,9 @@ class Job:
             f"--eredcapPowerOffsetDb={self.eredcap_power_offset_db}",
             f"--dlCceReserve={self.dl_cce_reserve}",
             f"--fixDlPdcchPrefilter={b(self.fix_dl_pdcch_prefilter)}",
+            f"--retxBsrTimerMs={self.retx_bsr_timer_ms}",
+            f"--guardSchedMarks={b(self.guard_sched_marks)}",
+            f"--fixDciRowSymbol={b(self.fix_dci_row_symbol)}",
         ]
 
 

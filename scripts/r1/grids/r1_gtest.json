@@ -1,0 +1,6 @@
+[
+ {"name":"ge40","red_cap_config":3,"num_ues":40,"interval_s":[0.04,0.02],"drain_s":10.0,"fix_dl_pdcch_prefilter":true,"retx_bsr_timer_ms":80,"guard_sched_marks":[false,true],"seeds":[1]},
+ {"name":"ge160","red_cap_config":3,"num_ues":160,"interval_s":0.2,"drain_s":10.0,"fix_dl_pdcch_prefilter":true,"retx_bsr_timer_ms":80,"guard_sched_marks":[false,true],"seeds":[1]},
+ {"name":"gmax","red_cap_config":2,"num_ues":40,"interval_s":0.025,"drain_s":10.0,"fix_dl_pdcch_prefilter":true,"retx_bsr_timer_ms":80,"guard_sched_marks":true,"seeds":[1]},
+ {"name":"gmin","red_cap_config":1,"num_ues":40,"interval_s":0.03,"drain_s":10.0,"fix_dl_pdcch_prefilter":true,"retx_bsr_timer_ms":80,"guard_sched_marks":true,"seeds":[1]}
+]

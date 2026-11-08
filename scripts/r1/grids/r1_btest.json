@@ -1,0 +1,6 @@
+[
+ {"name":"bmax25","red_cap_config":2,"num_ues":40,"interval_s":0.025,"drain_s":10.0,"fix_dl_pdcch_prefilter":true,"retx_bsr_timer_ms":[0,80],"seeds":[1]},
+ {"name":"bmax320","red_cap_config":2,"num_ues":320,"interval_s":0.2,"drain_s":10.0,"fix_dl_pdcch_prefilter":true,"retx_bsr_timer_ms":[0,80],"seeds":[1]},
+ {"name":"be40","red_cap_config":3,"num_ues":40,"interval_s":[0.04,0.02],"drain_s":10.0,"fix_dl_pdcch_prefilter":true,"retx_bsr_timer_ms":[0,80],"seeds":[1]},
+ {"name":"be160","red_cap_config":3,"num_ues":160,"interval_s":0.2,"drain_s":10.0,"fix_dl_pdcch_prefilter":true,"retx_bsr_timer_ms":[0,80],"seeds":[1]}
+]

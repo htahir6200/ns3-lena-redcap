@@ -253,6 +253,9 @@ main(int argc, char* argv[])
     int16_t eredcapPowerOffsetDb = 6;
     uint16_t dlCceReserve = 0;
     bool fixDlPdcchPrefilter = false;
+    uint32_t retxBsrTimerMs = 0;
+    bool guardSchedMarks = false;
+    bool fixDciRowSymbol = false;
     // For redCapConfig=3: true = real 5 MHz BWP (FGCS); false = IoTJ capability-style (20 MHz + ¼-RB).
     bool true5MHz = true;
     // Phase C energy fidelity
@@ -336,6 +339,15 @@ main(int argc, char* argv[])
     cmd.AddValue("eredcapPowerOffsetDb",
                  "IoTJ R1: eRedCap UE TX power reduction in dB (default 6)",
                  eredcapPowerOffsetDb);
+    cmd.AddValue("fixDciRowSymbol",
+                 "IoTJ R1: build DCIs from the row where the RB run started (fixes UL grants in the PUCCH symbol)",
+                 fixDciRowSymbol);
+    cmd.AddValue("guardSchedMarks",
+                 "IoTJ R1: never overwrite reserved or other-UE grid cells when marking allocations",
+                 guardSchedMarks);
+    cmd.AddValue("retxBsrTimerMs",
+                 "IoTJ R1: UE retxBSR-Timer in ms (TS 38.321); 0 = off (original)",
+                 retxBsrTimerMs);
     cmd.AddValue("fixDlPdcchPrefilter",
                  "IoTJ R1: non-reserving DL active-UE PDCCH pre-filter (fixes RLC STATUS starvation)",
                  fixDlPdcchPrefilter);
@@ -493,11 +505,12 @@ main(int argc, char* argv[])
     NrAccessStats::Reset();
     NrCampaignStats::Reset();
     NrCampaignStats::SetStrict(strictPhy);
+    Config::SetDefault("ns3::NrUeMac::RetxBsrTimer", TimeValue(MilliSeconds(retxBsrTimerMs)));
     std::cout << "R1Config: redCapConfig=" << +redCapConfig << " true5MHz=" << true5MHz
               << " mcs=" << +McsToBeUsed << " mimoLayerArg=" << +mimo_layer
               << " ueTxPowerDbm=" << transmitPower << " errorModel=" << m_useErrorModel
               << " harqReTx=" << enableHarqReTx << " strictPhy=" << strictPhy
-              << " drainS=" << drainS << " dlCceReserve=" << dlCceReserve << " fixDlPdcchPrefilter=" << fixDlPdcchPrefilter << " simTime=" << simTime << " seed=" << seed
+              << " drainS=" << drainS << " dlCceReserve=" << dlCceReserve << " fixDlPdcchPrefilter=" << fixDlPdcchPrefilter << " retxBsrTimerMs=" << retxBsrTimerMs << " guardSchedMarks=" << guardSchedMarks << " fixDciRowSymbol=" << fixDciRowSymbol << " simTime=" << simTime << " seed=" << seed
               << " interval=" << transmissionIntervall << " packetSize=" << packetSize
               << " ues=" << enddevicesNumPergNb << " embbUes=" << embbUes << std::endl;
 
@@ -816,6 +829,8 @@ main(int argc, char* argv[])
             pattern, 1, simTime, initTime / 1000, cellLogDir, bwpCount, use5MHz, rbPerBwp);
         mgr->SetDlCceReservation(dlCceReserve);
         mgr->SetFixDlPdcchPrefilter(fixDlPdcchPrefilter);
+        mgr->SetGuardMarks(guardSchedMarks);
+        mgr->SetFixDciRowSymbol(fixDciRowSymbol);
         NodeContainer oneGnb;
         oneGnb.Add(gNbNodes.Get(g));
         NetDeviceContainer d =
