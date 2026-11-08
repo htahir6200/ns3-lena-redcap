@@ -503,6 +503,7 @@ class NrUeMac : public Object
 
     EventId m_waitingForDciReception; //started after receiving RRC_Setup. UE ecpects to receive ressources to transmit RRC_SetupComplete
     EventId m_waitingForSchedulingTimer;
+    Time m_retxBsrTimer{Seconds(0)}; //!< IoTJ R1: retxBSR-Timer (TS 38.321 5.4.5); 0 = off
 
 
     EventId m_noRaResponseReceivedEvent;

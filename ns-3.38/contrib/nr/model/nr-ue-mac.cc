@@ -296,6 +296,14 @@ NrUeMac::GetTypeId()
                             MakeTraceSourceAccessor(&NrUeMac::m_macTxedCtrlMsgsTrace),
                             "ns3::NrMacRxTrace::TxedUeMacCtrlMsgsTracedCallback")
 
+            .AddAttribute("RetxBsrTimer",
+                          "IoTJ R1: retxBSR-Timer (TS 38.321 5.4.5). If data is still buffered after an "
+                          "UL grant and no further UL grant arrives within this time, the UE "
+                          "re-triggers BSR/SR. 0 disables it (original behaviour: the SR machine "
+                          "could stay ACTIVE forever if the BSR carried in PUSCH was lost).",
+                          TimeValue(Seconds(0)),
+                          MakeTimeAccessor(&NrUeMac::m_retxBsrTimer),
+                          MakeTimeChecker())
             .AddAttribute ("ActiveBwp",
                         "Only an active Bwp can be used for transmission/Reception",
                         BooleanValue (false),
@@ -921,6 +929,15 @@ NrUeMac::ProcessUlDci(const Ptr<NrUlDciMessage>& dciMsg)
             m_srState = INACTIVE;
 
             NS_LOG_INFO("ACTIVE -> INACTIVE, bufSize " << GetTotalBufSize());
+        }
+        else if (m_retxBsrTimer.IsStrictlyPositive())
+        {
+            // IoTJ R1: retxBSR-Timer. Data remains; if no further UL grant arrives in time,
+            // SrSchedulingTimeout moves ACTIVE -> TO_SEND and a new SR is sent.
+            m_srState = ACTIVE;
+            m_waitingForSchedulingTimer =
+                Simulator::Schedule(m_retxBsrTimer, &NrUeMac::SrSchedulingTimeout, this);
+            NrCampaignStats::Inc("ue.retx_bsr_timer_started");
         }
         // Always emit at least one PDU if the grant was unused. Tiny UL TBs
         // (< SHORT_BSR) can leave the PHY with an empty burst and abort.
