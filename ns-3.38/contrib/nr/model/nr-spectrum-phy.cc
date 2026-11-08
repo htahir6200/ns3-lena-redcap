@@ -5,6 +5,7 @@
 // SPDX-License-Identifier: GPL-2.0-only
 
 #include "nr-spectrum-phy.h"
+#include "nr-campaign-stats.h"
 
 #include "nr-gnb-net-device.h"
 #include "nr-gnb-phy.h"
@@ -589,6 +590,7 @@ NrSpectrumPhy::StartTxDataFrames(const Ptr<PacketBurst>& pb,
         // cannot leave a non-empty list while state is IDLE/TX.
         if (!m_rxControlMessageList.empty())
         {
+            NrCampaignStats::SoftFail(std::string("PHY_TX_DATA_PREEMPT_RX") + std::string(m_isEnb ? "@gnb" : "@ue"));
             NS_LOG_WARN("StartTxDataFrames while RX (state="
                         << m_state << ") — clearing stale ctrl list (dense-UL hardening).");
             m_rxControlMessageList.clear();
@@ -661,10 +663,12 @@ NrSpectrumPhy::StartTxDlControlFrames(const std::list<Ptr<NrControlMessage>>& ct
     case RX_UL_CTRL:
         /* no break*/
     case RX_UL_SRS:
+        NrCampaignStats::SoftFail(std::string("PHY_TX_DLCTRL_WHILE_RX") + std::string(m_isEnb ? "@gnb" : "@ue"));
         NS_LOG_WARN("Cannot TX DL CTRL while RX (state=" << m_state
                                                          << ") — dropping (dense-UL hardening).");
         return;
     case TX:
+        NrCampaignStats::SoftFail(std::string("PHY_TX_DLCTRL_WHILE_TX") + std::string(m_isEnb ? "@gnb" : "@ue"));
         NS_LOG_WARN("Cannot TX DL CTRL while already TX — dropping (dense-UL hardening).");
         return;
     case CCA_BUSY:
@@ -712,10 +716,12 @@ NrSpectrumPhy::StartTxUlControlFrames(const std::list<Ptr<NrControlMessage>>& ct
     case RX_UL_CTRL:
         /* no break */
     case RX_UL_SRS:
+        NrCampaignStats::SoftFail(std::string("PHY_TX_ULCTRL_WHILE_RX") + std::string(m_isEnb ? "@gnb" : "@ue"));
         NS_LOG_WARN("Cannot TX UL CTRL while RX (state=" << m_state
                                                          << ") — dropping (dense-UL hardening).");
         return;
     case TX:
+        NrCampaignStats::SoftFail(std::string("PHY_TX_ULCTRL_WHILE_TX") + std::string(m_isEnb ? "@gnb" : "@ue"));
         NS_LOG_WARN("Cannot TX UL CTRL while already TX — dropping (dense-UL hardening).");
         return;
     case CCA_BUSY:
@@ -978,6 +984,7 @@ NrSpectrumPhy::StartRxData(const Ptr<NrSpectrumSignalParametersDataFrame>& param
         if (m_isEnb) // I am gNB. We are here because some of my rebellious UEs is transmitting at
                      // the same time as me. -> invalid state.
         {
+            NrCampaignStats::SoftFail("PHY_GNB_TX_OVERLAPS_UE_TX@gnb");
             NS_LOG_WARN("eNB transmission overlaps in time with UE transmission. CellId:"
                         << params->cellId << " — ignoring (dense-UL hardening).");
             return;
@@ -991,6 +998,7 @@ NrSpectrumPhy::StartRxData(const Ptr<NrSpectrumSignalParametersDataFrame>& param
             // the whole campaign (see docs/BUGFIX_dense_spectrum_hardening.md).
             if (Sum((*m_txPsd) * (*params->psd)) != 0.0)
             {
+                NrCampaignStats::SoftFail("PHY_UL_TX_FREQ_OVERLAP@ue");
                 NS_LOG_WARN("Transmissions overlap in frequency (cellId="
                             << params->cellId << "); ignoring peer PSD for this UE TX");
             }
@@ -1004,6 +1012,7 @@ NrSpectrumPhy::StartRxData(const Ptr<NrSpectrumSignalParametersDataFrame>& param
     case RX_UL_SRS:
         // Temporary research hardening for dense OFDMA UL campaigns — not ideal PHY fidelity.
         // Drop conflicting DATA rather than aborting the simulation.
+        NrCampaignStats::SoftFail(std::string("PHY_RX_DATA_DROPPED_CTRL") + std::string(m_isEnb ? "@gnb" : "@ue"), params->packetBurst ? params->packetBurst->GetSize() : 0);
         NS_LOG_WARN("Cannot receive DATA while receiving CTRL (state="
                     << m_state << ") — dropping DATA reception (dense-UL hardening).");
         return;
@@ -1069,18 +1078,22 @@ NrSpectrumPhy::StartRxDlCtrl(const Ptr<NrSpectrumSignalParametersDlCtrlFrame>& p
     switch (m_state)
     {
     case TX:
+        NrCampaignStats::SoftFail(std::string("PHY_RX_DLCTRL_WHILE_TX") + std::string(m_isEnb ? "@gnb" : "@ue"));
         NS_LOG_WARN("Cannot RX DL CTRL while TX — dropping (dense-UL hardening).");
         return;
     case RX_DATA:
+        NrCampaignStats::SoftFail(std::string("PHY_RX_DLCTRL_WHILE_DATA") + std::string(m_isEnb ? "@gnb" : "@ue"));
         NS_LOG_WARN("Cannot RX DL CTRL while receiving DATA — dropping (dense-UL hardening).");
         return;
     case RX_DL_CTRL:
+        NrCampaignStats::SoftFail(std::string("PHY_RX_DLCTRL_DUPLICATE") + std::string(m_isEnb ? "@gnb" : "@ue"));
         NS_LOG_WARN("Cannot RX DL CTRL while already receiving DL CTRL — dropping "
                     "(dense-UL hardening).");
         return;
     case RX_UL_CTRL:
         /* no break */
     case RX_UL_SRS:
+        NrCampaignStats::SoftFail(std::string("PHY_RX_DLCTRL_BAD_STATE") + std::string(m_isEnb ? "@gnb" : "@ue"));
         NS_LOG_WARN("UE in unexpected UL RX state " << m_state
                                                     << " for DL CTRL — dropping (dense-UL hardening).");
         return;
@@ -1090,6 +1103,7 @@ NrSpectrumPhy::StartRxDlCtrl(const Ptr<NrSpectrumSignalParametersDlCtrlFrame>& p
     case IDLE: {
         if (!m_rxControlMessageList.empty())
         {
+            NrCampaignStats::SoftFail(std::string("PHY_RX_DLCTRL_STALE_LIST") + std::string(m_isEnb ? "@gnb" : "@ue"));
             NS_LOG_WARN("StartRxDlCtrl with non-empty ctrl list — clearing (dense-UL hardening).");
             m_rxControlMessageList.clear();
         }
@@ -1121,11 +1135,13 @@ NrSpectrumPhy::StartRxUlCtrl(const Ptr<NrSpectrumSignalParametersUlCtrlFrame>& p
     switch (m_state)
     {
     case TX:
+        NrCampaignStats::SoftFail(std::string("PHY_RX_ULCTRL_WHILE_TX") + std::string(m_isEnb ? "@gnb" : "@ue"));
         NS_LOG_WARN("Cannot RX UL CTRL while TX — dropping (dense-UL hardening).");
         return;
     case RX_DATA:
         // Temporary research hardening for dense OFDMA UL campaigns — not ideal PHY fidelity.
         // Drop conflicting UL CTRL rather than aborting the simulation.
+        NrCampaignStats::SoftFail(std::string("PHY_RX_ULCTRL_WHILE_DATA") + std::string(m_isEnb ? "@gnb" : "@ue"));
         NS_LOG_WARN("Cannot RX UL CTRL while receiving DATA — dropping UL CTRL "
                     "(dense-UL hardening).");
         return;
@@ -1133,6 +1149,7 @@ NrSpectrumPhy::StartRxUlCtrl(const Ptr<NrSpectrumSignalParametersUlCtrlFrame>& p
         NS_LOG_WARN("Cannot start RX UL CTRL while already receiving SRS — dropping.");
         return;
     case RX_DL_CTRL:
+        NrCampaignStats::SoftFail(std::string("PHY_RX_ULCTRL_BAD_STATE") + std::string(m_isEnb ? "@gnb" : "@ue"));
         NS_LOG_WARN("gNB in RX_DL_CTRL during UL CTRL — dropping (dense-UL hardening).");
         return;
     case CCA_BUSY:
@@ -1148,6 +1165,7 @@ NrSpectrumPhy::StartRxUlCtrl(const Ptr<NrSpectrumSignalParametersUlCtrlFrame>& p
             // state already returned to IDLE — clear instead of aborting.
             if (!m_rxControlMessageList.empty())
             {
+                NrCampaignStats::SoftFail(std::string("PHY_RX_ULCTRL_STALE_LIST") + std::string(m_isEnb ? "@gnb" : "@ue"));
                 NS_LOG_WARN("StartRxUlCtrl with non-empty ctrl list — clearing "
                             "(dense-UL hardening).");
                 m_rxControlMessageList.clear();
@@ -1167,6 +1185,7 @@ NrSpectrumPhy::StartRxUlCtrl(const Ptr<NrSpectrumSignalParametersUlCtrlFrame>& p
             if (!((m_firstRxStart == Simulator::Now()) &&
                   (m_firstRxDuration == params->duration)))
             {
+                NrCampaignStats::SoftFail(std::string("PHY_RX_ULCTRL_MISMATCH") + std::string(m_isEnb ? "@gnb" : "@ue"));
                 NS_LOG_WARN("Ignoring late mismatched UL CTRL while already in RX_UL_CTRL "
                             "(firstStart="
                             << m_firstRxStart.GetSeconds() << "s firstDur="
@@ -1225,6 +1244,7 @@ NrSpectrumPhy::StartRxSrs(const Ptr<NrSpectrumSignalParametersUlCtrlFrame>& para
         m_interferenceSrs->StartRx(params->psd);
         if (!m_rxControlMessageList.empty())
         {
+            NrCampaignStats::SoftFail(std::string("PHY_RX_SRS_STALE_LIST") + std::string(m_isEnb ? "@gnb" : "@ue"));
             NS_LOG_WARN("StartRxSrs with non-empty ctrl list — clearing (dense-UL hardening).");
             m_rxControlMessageList.clear();
         }
@@ -1590,12 +1610,14 @@ NrSpectrumPhy::EndRxCtrl()
         // Always drop leftover CTRL payload so the next IDLE RX start does not assert.
         if (!m_rxControlMessageList.empty())
         {
+            NrCampaignStats::SoftFail(std::string("PHY_END_RXCTRL_STALE_LIST") + std::string(m_isEnb ? "@gnb" : "@ue"));
             NS_LOG_WARN("EndRxCtrl in unexpected state "
                         << m_state << " with stale ctrl list — clearing (dense-UL hardening).");
             m_rxControlMessageList.clear();
         }
         else
         {
+            NrCampaignStats::SoftFail(std::string("PHY_END_RXCTRL_BAD_STATE") + std::string(m_isEnb ? "@gnb" : "@ue"));
             NS_LOG_WARN("EndRxCtrl in unexpected state " << m_state
                                                          << " — ignoring (dense-UL hardening).");
         }

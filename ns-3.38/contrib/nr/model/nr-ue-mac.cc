@@ -12,6 +12,7 @@
     } while (false);
 
 #include "nr-ue-mac.h"
+#include "nr-campaign-stats.h"
 
 #include "nr-control-messages.h"
 #include "nr-mac-header-vs.h"
@@ -350,6 +351,7 @@ NrUeMac::DoNotifyConnectionSuccessful()
     // (e.g. after SrSchedulingTimeout) when RRC reports connection success again.
     if (m_srState != INACTIVE)
     {
+        NrCampaignStats::SoftFail("UEMAC_SR_RESET_ON_CONNECT@ue");
         NS_LOG_WARN("DoNotifyConnectionSuccessful with srState="
                     << +m_srState << " imsi=" << m_imsi
                     << " — resetting SR machine (dense short-DIT hardening).");
@@ -374,12 +376,14 @@ NrUeMac::DciReceptionTimeout()
      NS_LOG_FUNCTION(this);
      if(m_srState == WAIT_SCHEDULING)
      {
+        NrCampaignStats::Inc("ue.dci_reception_timeout");
         m_srState = INACTIVE;
         
      }
      else
      {
         // Concurrent SR / reconnect under short DIT can advance srState first.
+        NrCampaignStats::SoftFail("UEMAC_DCI_TIMEOUT_BAD_STATE@ue");
         NS_LOG_WARN("DciReceptionTimeout with srState="
                     << +m_srState << " imsi=" << m_imsi
                     << " — ignoring (dense short-DIT hardening).");
@@ -792,8 +796,10 @@ NrUeMac::SendSR() const
     if (m_rnti == 0)
     {
         NS_LOG_INFO("MAC not initialized, SR deferred");
+        NrCampaignStats::Inc("ue.sr_deferred_no_rnti");
         return;
     }
+    NrCampaignStats::Inc("ue.sr_sent");
 
     // create the SR to send to the gNB
     Ptr<NrSRMessage> msg = Create<NrSRMessage>();
@@ -873,6 +879,9 @@ NrUeMac::ProcessUlDci(const Ptr<NrUlDciMessage>& dciMsg)
     m_ulDciSfnsf = dataSfn;
     m_ulDciTotalUsed = 0;
     m_ulDci = dciMsg->GetDciInfoElement();
+    NrCampaignStats::Inc("ue.ul_dci");
+    NrCampaignStats::Inc("ue.ul_dci_tbs_bytes", m_ulDci->m_tbSize.at(0));
+    NrCampaignStats::Max("ue.ul_dci_max_streams", m_ulDci->m_tbSize.size());
 
     m_macRxedCtrlMsgsTrace(m_currentSlot, GetCellId(), m_rnti, GetBwpId(), dciMsg);
 
@@ -902,6 +911,11 @@ NrUeMac::ProcessUlDci(const Ptr<NrUlDciMessage>& dciMsg)
                     << m_ulDciTotalUsed << " B out of " << m_ulDci->m_tbSize.at(0)
                     << " allocated bytes ");
 
+        NrCampaignStats::Inc("ue.ul_dci_used_bytes", m_ulDciTotalUsed);
+        if (m_ulDciTotalUsed == 0)
+        {
+            NrCampaignStats::Inc("ue.ul_dci_unused");
+        }
         if (GetTotalBufSize() == 0)
         {
             m_srState = INACTIVE;
@@ -1607,6 +1621,7 @@ NrUeMac::RaResponseTimeout (bool contention)
     if (m_preambleTransmissionCounter > 100)
     {
         // Dense-campaign hardening: notify RRC instead of aborting; IncRaFailed is counted in RRC.
+        NrCampaignStats::SoftFail("UEMAC_RA_PREAMBLE_MAX@ue");
         NS_LOG_WARN("RAR timeout, preambleTransMax reached => giving up (imsi=" << m_imsi << ")");
         m_cmacSapUser->NotifyRandomAccessFailed ();
     }
@@ -1630,12 +1645,14 @@ NrUeMac::SrSchedulingTimeout()
     std::cout<<"SrSchedulingTimeout for imsi: "<<m_imsi<<" in Bwp: "<<GetBwpId()<<std::endl;
     if(m_srState == ACTIVE)
      {
+        NrCampaignStats::Inc("ue.sr_unanswered");
         m_srState = TO_SEND;
         //we waited for an UL_DCi but didnt get one. Try it again
      }
     else if (m_srState == INACTIVE)
     {
         // Released / reset while the timer was still pending.
+        NrCampaignStats::SoftFail("UEMAC_SR_TIMEOUT_INACTIVE@ue");
         NS_LOG_WARN("SrSchedulingTimeout while INACTIVE imsi="
                     << m_imsi << " — ignoring (dense short-DIT hardening).");
     }

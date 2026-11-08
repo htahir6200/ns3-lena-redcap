@@ -11,6 +11,7 @@
     } while (false);
 
 #include "nr-mac-scheduler-ns3.h"
+#include "nr-campaign-stats.h"
 
 #include "nr-mac-scheduler-harq-rr.h"
 #include "nr-mac-scheduler-srs-default.h"
@@ -3551,6 +3552,7 @@ NrMacSchedulerNs3::DoScheduleDl(const std::vector<DlHarqInfo>& dlHarqFeedback,
             DoScheduleDlData(&dlAssignationStartPoint, dlSymAvail, *activeDlUe, allocInfo,dlSfnSf);
         if (usedDl > dlSymAvail)
         {
+            NrCampaignStats::SoftFail("SCHED_DL_SYM_CLAMP@gnb");
             NS_LOG_WARN("DoScheduleDlData reported usedDl="
                         << +usedDl << " > dlSymAvail=" << +dlSymAvail
                         << " — clamping (dense DL / eRedCap hardening)");
@@ -3682,6 +3684,7 @@ NrMacSchedulerNs3::DoScheduleDlWithResManager(const std::vector<DlHarqInfo>& dlH
             DoScheduleDlDataWithResManager(&dlAssignationStartPoint, dlSymAvail, *activeDlUe, allocInfo, dlSfnSf);
         if (usedDl > dlSymAvail)
         {
+            NrCampaignStats::SoftFail("SCHED_DL_SYM_CLAMP_RESMGR@gnb");
             NS_LOG_WARN("DoScheduleDlDataWithResManager reported usedDl="
                         << +usedDl << " > dlSymAvail=" << +dlSymAvail
                         << " — clamping (dense DL / eRedCap hardening)");

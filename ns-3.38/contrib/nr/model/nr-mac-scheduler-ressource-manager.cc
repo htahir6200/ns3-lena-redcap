@@ -3,6 +3,7 @@
 #include <ns3/pointer.h>
 #include <ns3/uinteger.h>
 #include <ns3/nr-mac-scheduler-ressource-manager.h>
+#include "nr-campaign-stats.h"
 
 #include <iostream>
 #include <fstream>
@@ -940,6 +941,7 @@ namespace ns3
                 }
                 if (markedRB == 0)
                 {
+                    NrCampaignStats::Inc("sched.part_alloc_abort_no_free_rb");
                     NS_LOG_WARN("schedulePartPacket: abort allocation for UE "
                                 << ue << " — no FREE RBs in partial rectangle"
                                 << " (startSym=" << unsigned(startSym)
@@ -948,6 +950,7 @@ namespace ns3
                 }
                 if (markedRB < bwInRBG)
                 {
+                    NrCampaignStats::Inc("sched.part_alloc_shrunk");
                     NS_LOG_WARN("schedulePartPacket: shrunk NumberRB from "
                                 << bwInRBG << " to " << markedRB << " for UE " << ue
                                 << " (skipped non-FREE RBs)");
@@ -1287,6 +1290,7 @@ namespace ns3
         if (NumberRB > 0 && StartRB + NumberRB - 1 > upperBorder)
         {
             NumberRB = static_cast<uint16_t>(upperBorder - StartRB + 1);
+            NrCampaignStats::SoftFail("SCHED_RBG_MASK_CLAMP@gnb");
             NS_LOG_WARN("createRBGmask: clamped NumberRB to " << NumberRB
                         << " (bwp=" << unsigned(bwpIndex) << " bw=" << bwInRBG << ")");
         }
@@ -1569,6 +1573,7 @@ namespace ns3
                 }
                 if (overlap)
                 {
+                    NrCampaignStats::SoftFail("SCHED_DCI_OVERLAP_DROPPED@gnb");
                     NS_LOG_WARN("createDCI: dropping overlapping DCI for RNTI "
                                 << cand->m_rnti << " (rbgBitmask conflict with earlier DCI"
                                 << " in same slot, bwp=" << unsigned(bwpIndex) << ")");
@@ -1702,6 +1707,7 @@ namespace ns3
                 {
                     return true;
                 }
+                NrCampaignStats::Inc("sched.dci_cce_reserved");
                 for(uint8_t rb =0; rb<numRB; ++rb )
                 {
                     for(uint8_t symNum =0; symNum <coresetMap.at(bwpID);++symNum)
@@ -1769,8 +1775,11 @@ namespace ns3
         First it is checked ehether the ue is already scheduled in the same slot. After that a possible DL slot for scheduling is checked with the configured searchspace. 
         This function returns true if a DL-slot has free PDCCH-capaties. Note: this function does not reserve them. This is dont after scheduling
         */
+        const uint64_t tgtSlot = sfnsf.GetFrame() * sfnsf.GetSlotPerSubframe() * sfnsf.GetSubframesPerFrame() + sfnsf.GetSubframe() * sfnsf.GetSlotPerSubframe() + sfnsf.GetSlot();
+        const std::string pdcchKey = std::string("sched.pdcch_check.") + (m_pattern[tgtSlot % m_pattern.size()] == ns3::UL ? "ul." : "dl.");
         if(!Msg3 && isAlreadyScheduled(rnti,sfnsf,bwpID))
         {
+            NrCampaignStats::Inc(pdcchKey + "already_scheduled");
             return false;
         }
 
@@ -1791,14 +1800,17 @@ namespace ns3
                     {
                         if(checkPdcchUsage(false,slotnumber,bwpID))
                         {
+                            NrCampaignStats::Inc(pdcchKey + "ok");
                             return true; 
                         }                                 
                     }
                 }           
             }
+            NrCampaignStats::Inc(pdcchKey + "no_free_cce");
             return false; 
         }
         else{
+            NrCampaignStats::Inc(pdcchKey + "no_search_space");
             return true; //no searchspace is set. Common Search Space not implemented 
         }    
     }

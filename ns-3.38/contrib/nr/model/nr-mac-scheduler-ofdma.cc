@@ -11,6 +11,7 @@
     } while (false);
 
 #include "nr-mac-scheduler-ofdma.h"
+#include "nr-campaign-stats.h"
 
 #include <ns3/log.h>
 
@@ -1674,11 +1675,17 @@ NrMacSchedulerOfdma::AssignULRBG_manager (uint32_t symAvail, const ActiveUeMap &
           RessourceSet* Res = new RessourceSet();
         
           //std::cout<<"Schedule Data with MCS: "<< uint(GetUe (*schedInfoIt)->m_ulMcs)<< "and imi: "<< uint(GetUe (*schedInfoIt)->m_imsi)<<std::endl;
+          NrCampaignStats::Inc("sched.ul.ue_slot_candidates");
           if(m_manager->pdcchAvailableInSearchSpace(false,ulSfn,GetUe (*schedInfoIt)->m_rnti, GetBwpId()))
           {
             Res = m_manager->scheduleData( GetBwpId (),GetUe (*schedInfoIt)->m_rnti,rbPacket,LteNrTddSlotType::UL,false,ulSfn,Res);
+            if (Res->NumberRB == 0 || Res->NumberSymbols == 0)
+            {
+              NrCampaignStats::Inc("sched.ul.not_scheduled.no_rb");
+            }
           }
           else{
+            NrCampaignStats::Inc("sched.ul.not_scheduled.pdcch");
             // if(GetUe (*schedInfoIt)->m_rnti <= 20 )
             // {
             //   std::cout<<"imi: "<< uint(GetUe (*schedInfoIt)->m_imsi)<<" didnt get PDCCH ressources"<<std::endl;
@@ -1688,6 +1695,10 @@ NrMacSchedulerOfdma::AssignULRBG_manager (uint32_t symAvail, const ActiveUeMap &
           
           if(Res->NumberRB!=0 && Res->NumberSymbols !=0)
           {
+            NrCampaignStats::Inc("sched.ul.grants");
+            NrCampaignStats::Inc("sched.ul.grant_rb_sum", Res->NumberRB);
+            NrCampaignStats::Inc("sched.ul.grant_sym_sum", Res->NumberSymbols);
+            NrCampaignStats::Inc("sched.ul.grant_needed_rbsym_sum", rbPacket);
             // std::cout<<"Got "<<uint(Res->NumberRB)<<slotRessources.size()<<std::endl;
             //UE got data scheduled. Increment the first ue to be scheduled in the next slot and update freeRessources
             schedStartUe = GetUe (*schedInfoIt)->m_rnti +1;
@@ -1696,6 +1707,7 @@ NrMacSchedulerOfdma::AssignULRBG_manager (uint32_t symAvail, const ActiveUeMap &
             
             if(!m_manager->markViablePdcchRessource(false,ulSfn,GetUe (*schedInfoIt)->m_rnti, GetBwpId()))
             {
+                  NrCampaignStats::Inc("sched.ul.pdcch_mark_fail");
                   std::cout<<"Error: Cannot mark pdcch ressources although they should be available."<<std::endl;
             }
 

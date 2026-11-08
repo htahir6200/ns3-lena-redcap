@@ -46,6 +46,19 @@ class LteRlcAm : public LteRlc
     void DoDispose() override;
 
     /**
+     * IoTJ R1 instrumentation (read-only): current RLC AM buffer occupancy in bytes.
+     * \param txon bytes waiting for first transmission
+     * \param retx bytes waiting for retransmission
+     * \param txed bytes transmitted but not yet acknowledged
+     */
+    void GetBufferBytesForStats(uint32_t& txon, uint32_t& retx, uint32_t& txed) const
+    {
+        txon = m_txonBufferSize;
+        retx = m_retxBufferSize;
+        txed = m_txedBufferSize;
+    }
+
+    /**
      * RLC SAP
      *
      * \param p packet

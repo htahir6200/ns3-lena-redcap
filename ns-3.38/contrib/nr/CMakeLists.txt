@@ -5,6 +5,7 @@
 set(source_files
     helper/nr-helper.cc
     helper/nr-access-stats.cc
+    model/nr-campaign-stats.cc
     helper/nr-phy-rx-trace.cc
     helper/nr-mac-rx-trace.cc
     helper/nr-point-to-point-epc-helper.cc
@@ -125,6 +126,7 @@ set(source_files
 set(header_files
     helper/nr-helper.h
     helper/nr-access-stats.h
+    model/nr-campaign-stats.h
     helper/nr-phy-rx-trace.h
     helper/nr-mac-rx-trace.h
     helper/nr-point-to-point-epc-helper.h

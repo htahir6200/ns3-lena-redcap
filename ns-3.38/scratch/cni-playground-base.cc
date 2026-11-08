@@ -31,6 +31,11 @@
 #include "ns3/network-module.h"
 #include "ns3/nr-helper.h"
 #include "ns3/nr-access-stats.h"
+#include "ns3/nr-campaign-stats.h"
+#include "ns3/lte-rlc-am.h"
+#include "ns3/lte-radio-bearer-info.h"
+#include "ns3/nr-ue-rrc.h"
+#include "ns3/nr-ue-net-device.h"
 #include "ns3/nr-mac-scheduler-tdma-rr.h"
 #include "ns3/nr-module.h"
 #include "ns3/nr-point-to-point-epc-helper.h"
@@ -52,6 +57,112 @@
 using namespace ns3;
 
 static double g_progressSimTimeSeconds = 36.0;
+
+// IoTJ R1: once-per-second time series of offered / delivered bytes and UL backlog.
+static std::ofstream g_tsFile;
+static Ptr<FlowMonitor> g_tsMonitor;
+static NetDeviceContainer g_ueDevs;
+
+struct RlcBacklog
+{
+    uint64_t txon{0};
+    uint64_t retx{0};
+    uint64_t txed{0};
+    uint64_t uesWithBacklog{0}; // UEs with txon+retx > 0 on any data radio bearer
+};
+
+// IoTJ R1: read the UL RLC AM buffers of every UE data radio bearer directly.
+RlcBacklog readRlcBacklog()
+{
+    RlcBacklog b;
+    for (uint32_t i = 0; i < g_ueDevs.GetN(); ++i)
+    {
+        Ptr<NrUeNetDevice> dev = DynamicCast<NrUeNetDevice>(g_ueDevs.Get(i));
+        if (!dev || !dev->GetRrc())
+        {
+            continue;
+        }
+        ObjectMapValue drbs;
+        dev->GetRrc()->GetAttribute("DataRadioBearerMap", drbs);
+        uint64_t ueWaiting = 0;
+        for (auto it = drbs.Begin(); it != drbs.End(); ++it)
+        {
+            Ptr<LteDataRadioBearerInfo> drb = DynamicCast<LteDataRadioBearerInfo>(it->second);
+            if (!drb)
+            {
+                continue;
+            }
+            Ptr<LteRlcAm> am = DynamicCast<LteRlcAm>(drb->m_rlc);
+            if (!am)
+            {
+                continue;
+            }
+            uint32_t txon = 0;
+            uint32_t retx = 0;
+            uint32_t txed = 0;
+            am->GetBufferBytesForStats(txon, retx, txed);
+            b.txon += txon;
+            b.retx += retx;
+            b.txed += txed;
+            ueWaiting += txon + retx;
+        }
+        b.uesWithBacklog += ueWaiting > 0 ? 1 : 0;
+    }
+    return b;
+}
+
+void timeSeriesSnapshot()
+{
+    uint64_t tx = 0;
+    uint64_t rx = 0;
+    if (g_tsMonitor)
+    {
+        for (const auto& kv : g_tsMonitor->GetFlowStats())
+        {
+            tx += kv.second.txBytes;
+            rx += kv.second.rxBytes;
+        }
+    }
+    const RlcBacklog bl = readRlcBacklog();
+    g_tsFile << Simulator::Now().GetSeconds() << "," << tx << "," << rx << "," << (bl.txon + bl.retx)
+             << "," << bl.uesWithBacklog << "," << bl.txed << "," << NrCampaignStats::TotalSoftFails() << ","
+             << NrCampaignStats::Get("ue.sr_unanswered") << ","
+             << NrCampaignStats::Get("sched.ul.not_scheduled.pdcch") << ","
+             << NrCampaignStats::Get("sched.ul.grants") << "\n";
+    Simulator::Schedule(Seconds(1.0), &timeSeriesSnapshot);
+}
+
+// IoTJ R1: one-shot snapshot at traffic stop, so a run with a drain period also yields the
+// PDR as measured without drain (original paper definition).
+void trafficStopSnapshot()
+{
+    uint64_t tx = 0;
+    uint64_t rx = 0;
+    uint64_t txPay = 0;
+    uint64_t rxPay = 0;
+    if (g_tsMonitor)
+    {
+        for (const auto& kv : g_tsMonitor->GetFlowStats())
+        {
+            tx += kv.second.txBytes;
+            rx += kv.second.rxBytes;
+            if (kv.second.txBytes > 100) // same payload-flow rule as parse_results.py
+            {
+                txPay += kv.second.txBytes;
+                rxPay += kv.second.rxBytes;
+            }
+        }
+    }
+    NrCampaignStats::Set("atstop.tx_bytes", tx);
+    NrCampaignStats::Set("atstop.rx_bytes", rx);
+    NrCampaignStats::Set("atstop.payload_tx_bytes", txPay);
+    NrCampaignStats::Set("atstop.payload_rx_bytes", rxPay);
+    const RlcBacklog bl = readRlcBacklog();
+    NrCampaignStats::Set("atstop.ul_backlog_bytes", bl.txon + bl.retx);
+    NrCampaignStats::Set("atstop.ul_retx_bytes", bl.retx);
+    NrCampaignStats::Set("atstop.ul_unacked_bytes", bl.txed);
+    NrCampaignStats::Set("atstop.ues_with_backlog", bl.uesWithBacklog);
+}
 
 void progressPrint()
 {
@@ -135,6 +246,11 @@ main(int argc, char* argv[])
     bool m_useErrorModel = false;
     // Default false keeps IoTJ campaigns bit-compatible (no HARQ retx).
     bool enableHarqReTx = false;
+    // IoTJ R1 revision options (defaults keep the 2ab3dda behaviour bit-for-bit).
+    bool strictPhy = false;
+    double drainS = 0.0;
+    int16_t mcsOverride = -1;
+    int16_t eredcapPowerOffsetDb = 6;
     // For redCapConfig=3: true = real 5 MHz BWP (FGCS); false = IoTJ capability-style (20 MHz + ¼-RB).
     bool true5MHz = true;
     // Phase C energy fidelity
@@ -206,6 +322,18 @@ main(int argc, char* argv[])
     cmd.AddValue("true5MHz",
                  "For redCapConfig=3: true=5 MHz BWP (no ¼-RB); false=capability-style 20 MHz+¼RB (IoTJ)",
                  true5MHz);
+    cmd.AddValue("strictPhy",
+                 "IoTJ R1: abort at every dense-hardening soft-fail site (original fatal behaviour)",
+                 strictPhy);
+    cmd.AddValue("drainS",
+                 "IoTJ R1: extra simulated seconds after traffic stops so queues can drain (default 0)",
+                 drainS);
+    cmd.AddValue("mcsOverride",
+                 "IoTJ R1: if >=0, use this fixed UL/DL MCS for every RedCap class",
+                 mcsOverride);
+    cmd.AddValue("eredcapPowerOffsetDb",
+                 "IoTJ R1: eRedCap UE TX power reduction in dB (default 6)",
+                 eredcapPowerOffsetDb);
     cmd.AddValue("intervall","used intervall for transmitting data", transmissionIntervall);
     cmd.AddValue("packetSize","used packetSize for datastream", packetSize);
     cmd.AddValue("inactivityTimer", "Timer to release the connection after it´s expiration",m_dataInactivityTimer);
@@ -229,6 +357,8 @@ main(int argc, char* argv[])
                  edrxCycleFrames);
 
     cmd.Parse(argc, argv);
+    NS_ABORT_MSG_IF(drainS < 0, "drainS must be >= 0");
+    NS_ABORT_MSG_IF(mcsOverride > 28, "mcsOverride must be -1 or 0..28");
 
     NS_ABORT_MSG_IF(redCapConfig < 1 || redCapConfig > 3,
                     "redCapConfig must be 1 (min), 2 (max), or 3 (eRedCap)");
@@ -258,7 +388,7 @@ main(int argc, char* argv[])
     case 3:
         mimo_layer=1;
         McsToBeUsed = 19;
-        transmitPower -=6;
+        transmitPower -= eredcapPowerOffsetDb;
         if (true5MHz)
         {
             // Real 5 MHz RF BWP @ μ=1, RbOverhead=0.08 → 12 RB (38.104 lists 11).
@@ -275,6 +405,11 @@ main(int argc, char* argv[])
             rbPerBwp = 51;
         }
         break;
+    }
+
+    if (mcsOverride >= 0)
+    {
+        McsToBeUsed = static_cast<uint8_t>(mcsOverride);
     }
 
     {
@@ -348,6 +483,15 @@ main(int argc, char* argv[])
     std::string usedRedCapConfig;
 
     NrAccessStats::Reset();
+    NrCampaignStats::Reset();
+    NrCampaignStats::SetStrict(strictPhy);
+    std::cout << "R1Config: redCapConfig=" << +redCapConfig << " true5MHz=" << true5MHz
+              << " mcs=" << +McsToBeUsed << " mimoLayerArg=" << +mimo_layer
+              << " ueTxPowerDbm=" << transmitPower << " errorModel=" << m_useErrorModel
+              << " harqReTx=" << enableHarqReTx << " strictPhy=" << strictPhy
+              << " drainS=" << drainS << " simTime=" << simTime << " seed=" << seed
+              << " interval=" << transmissionIntervall << " packetSize=" << packetSize
+              << " ues=" << enddevicesNumPergNb << " embbUes=" << embbUes << std::endl;
 
     switch (redCapConfig)
     {
@@ -675,6 +819,7 @@ main(int argc, char* argv[])
     NetDeviceContainer ueNetDev = nrHelper->InstallUeDevice (embbUeNodes, allBwps,SdtUsable, chip_NR);
     NetDeviceContainer redCapUeNetDev = nrHelper->InstallRedCapUeDevice (redCapUeNodes, allBwps, SdtUsable, chip_RedCap,mimo_layer);
     ueNetDev.Add(redCapUeNetDev);
+    g_ueDevs = ueNetDev;
     
     double polarizationFirstSubArray = (0.0 * M_PI) / 180.0;  // converting to radians
     double polarizationSecondSubArray = (90.0 * M_PI) / 180.0; // converting to radians
@@ -1004,7 +1149,9 @@ main(int argc, char* argv[])
        
     outFile_ports.close();
 
-    serverApps.Stop(Seconds(simTime+initTime/1000));
+    // IoTJ R1: servers (receivers) stay up during the drain period; clients stop generating at
+    // the original time (udpAppStopTime / clientApps.Stop below).
+    serverApps.Stop(Seconds(simTime+initTime/1000 + drainS));
     clientApps.Stop(Seconds(simTime+initTime/1000));
 
     // enable the traces provided by the nr module
@@ -1021,7 +1168,17 @@ main(int argc, char* argv[])
     monitor->SetAttribute("JitterBinWidth", DoubleValue(0.001));
     monitor->SetAttribute("PacketSizeBinWidth", DoubleValue(20));
     Simulator::Schedule(Seconds(0.1), &progressPrint);  
-    Simulator::Stop(Seconds(simTime+initTime/1000));
+    g_tsMonitor = monitor;
+    g_tsFile.open(ResultDir + "timeseries_Seed" + std::to_string(seed) + ".csv",
+                  std::ofstream::out | std::ofstream::trunc);
+    g_tsFile << "t_s,tx_bytes,rx_bytes,ul_backlog_bytes,ues_with_backlog,ul_unacked_bytes,softfails,sr_unanswered,ul_not_sched_pdcch,ul_grants\n";
+    Simulator::Schedule(Seconds(1.0), &timeSeriesSnapshot);
+    // Snapshot after the last client send event at the traffic-stop instant.
+    Simulator::Schedule(Seconds(simTime + initTime / 1000) - NanoSeconds(1), &trafficStopSnapshot);
+    std::cout << "R1Timing: trafficStartMs=" << udpAppStartTime << "(+per-UE access offset)"
+              << " trafficStopS=" << (simTime + initTime / 1000) << " simEndS="
+              << (simTime + initTime / 1000 + drainS) << std::endl;
+    Simulator::Stop(Seconds(simTime+initTime/1000 + drainS));
     Simulator::Run();
 
     /*
@@ -1296,6 +1453,33 @@ main(int argc, char* argv[])
               << " rrc_connected=" << NrAccessStats::GetRrcConnected()
               << " rrc_timeout=" << NrAccessStats::GetRrcTimeout() << std::endl;
 
+    {
+        // IoTJ R1 revision statistics.
+        timeSeriesSnapshot();
+        g_tsFile.close();
+        const RlcBacklog bl = readRlcBacklog();
+        const uint64_t queued = bl.txon + bl.retx;
+        const uint64_t queuedUes = bl.uesWithBacklog;
+        NrCampaignStats::Set("queue.ul_backlog_bytes_at_end", queued);
+        NrCampaignStats::Set("queue.ul_retx_bytes_at_end", bl.retx);
+        NrCampaignStats::Set("queue.ul_unacked_bytes_at_end", bl.txed);
+        NrCampaignStats::Set("queue.ues_with_backlog_at_end", queuedUes);
+        NrCampaignStats::Set("res.pdcch_coreset_cells_used", resStats.PdcchUsed);
+        NrCampaignStats::Set("res.pdcch_coreset_cells_free", resStats.PdcchRessources);
+        std::string revPath = ResultDir + "revisionStats_Seed" + std::to_string(seed) + ".txt";
+        std::ofstream rev(revPath, std::ofstream::out | std::ofstream::trunc);
+        NrCampaignStats::Dump(rev);
+        rev.close();
+        std::cout << "R1Stats: softfails=" << NrCampaignStats::TotalSoftFails()
+                  << " ul_backlog_bytes_at_end=" << queued << " ues_with_backlog=" << queuedUes
+                  << " sr_sent=" << NrCampaignStats::Get("ue.sr_sent")
+                  << " sr_unanswered=" << NrCampaignStats::Get("ue.sr_unanswered")
+                  << " ul_grants=" << NrCampaignStats::Get("sched.ul.grants")
+                  << " ul_not_sched_pdcch=" << NrCampaignStats::Get("sched.ul.not_scheduled.pdcch")
+                  << " file=" << revPath << std::endl;
+    }
+    g_tsMonitor = nullptr;
+    g_ueDevs = NetDeviceContainer();
     Simulator::Destroy();
     return 0;
 }
