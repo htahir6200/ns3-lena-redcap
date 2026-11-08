@@ -198,9 +198,20 @@ def parse_timeseries(path: Path) -> dict:
     # traffic window = from first second with payload growth to last
     start = next((i for i in range(1, len(tx)) if tx[i] - tx[i - 1] > 10000), 1)
     end = len(tx) - 1
+    end = next((i for i in range(1, len(tx)) if tx[i] == tx[-1]), len(tx) - 1)  # traffic stop
     mid = start + (end - start) // 2
     dt = t[end] - t[mid]
+    # Stall detector: during the last 3 s of traffic (or of the run, if shorter) nothing is
+    # delivered although UL backlog remains. A healthy saturated cell keeps delivering.
+    stop_i = next((i for i in range(1, len(tx)) if tx[i] == tx[-1]), len(tx) - 1)
+    w0 = max(start, stop_i - 3)
+    stalled = int(stop_i > w0 and q[stop_i] > 0
+                  and (rx[stop_i] - rx[w0]) < 0.01 * max(1, tx[stop_i] - tx[w0]))
+    drained = int(q[-1] == 0)
     return {
+        "ts.stalled": stalled,
+        "ts.drained_at_end": drained,
+        "ts.traffic_stop_s": t[stop_i],
         "ts.traffic_start_s": t[start],
         "ts.backlog_mid_bytes": q[mid],
         "ts.backlog_end_bytes": q[end],

@@ -81,6 +81,8 @@ def metrics(row: dict) -> dict:
     out["attach_fail"] = f(row, "attach_fail")
     out["rrc_connected"] = f(row, "rrc_connected")
     out["ok"] = f(row, "ok")
+    out["stalled"] = f(row, "ts.stalled")
+    out["drained_at_end"] = f(row, "ts.drained_at_end")
     return out
 
 

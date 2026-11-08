@@ -1,0 +1,51 @@
+[
+ {
+  "fix_dl_pdcch_prefilter": true,
+  "retx_bsr_timer_ms": 80,
+  "guard_sched_marks": true,
+  "fix_dci_row_symbol": true,
+  "drain_s": 10.0,
+  "name": "strict",
+  "red_cap_config": [
+   1,
+   2,
+   3
+  ],
+  "num_ues": 40,
+  "interval_s": [
+   0.05,
+   0.03,
+   0.025
+  ],
+  "strict_phy": true,
+  "seeds": [
+   1,
+   2,
+   3
+  ]
+ },
+ {
+  "fix_dl_pdcch_prefilter": true,
+  "retx_bsr_timer_ms": 80,
+  "guard_sched_marks": true,
+  "fix_dci_row_symbol": true,
+  "drain_s": 10.0,
+  "name": "strictd",
+  "red_cap_config": [
+   1,
+   2,
+   3
+  ],
+  "num_ues": [
+   160,
+   320
+  ],
+  "interval_s": 0.2,
+  "strict_phy": true,
+  "seeds": [
+   1,
+   2,
+   3
+  ]
+ }
+]

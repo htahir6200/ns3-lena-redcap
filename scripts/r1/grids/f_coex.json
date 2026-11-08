@@ -1,0 +1,81 @@
+[
+ {
+  "fix_dl_pdcch_prefilter": true,
+  "retx_bsr_timer_ms": 80,
+  "guard_sched_marks": true,
+  "fix_dci_row_symbol": true,
+  "drain_s": 10.0,
+  "name": "coexb",
+  "red_cap_config": [
+   1,
+   2,
+   3
+  ],
+  "num_ues": 40,
+  "interval_s": 0.5,
+  "embb_ues": [
+   0,
+   5,
+   10
+  ],
+  "seeds": [
+   1,
+   2,
+   3
+  ]
+ },
+ {
+  "fix_dl_pdcch_prefilter": true,
+  "retx_bsr_timer_ms": 80,
+  "guard_sched_marks": true,
+  "fix_dci_row_symbol": true,
+  "drain_s": 10.0,
+  "name": "coexk1",
+  "red_cap_config": [
+   1,
+   2,
+   3
+  ],
+  "num_ues": 40,
+  "interval_s": 0.03,
+  "embb_ues": [
+   0,
+   5,
+   10
+  ],
+  "seeds": [
+   1,
+   2,
+   3,
+   4,
+   5
+  ]
+ },
+ {
+  "fix_dl_pdcch_prefilter": true,
+  "retx_bsr_timer_ms": 80,
+  "guard_sched_marks": true,
+  "fix_dci_row_symbol": true,
+  "drain_s": 10.0,
+  "name": "coexk2",
+  "red_cap_config": [
+   1,
+   2,
+   3
+  ],
+  "num_ues": 240,
+  "interval_s": 0.2,
+  "embb_ues": [
+   0,
+   5,
+   10
+  ],
+  "seeds": [
+   1,
+   2,
+   3,
+   4,
+   5
+  ]
+ }
+]
