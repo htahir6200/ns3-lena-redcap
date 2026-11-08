@@ -884,7 +884,7 @@ NrGnbPhy::RetrievePrepareEncodeCtrlMsgs()
 {
     NS_LOG_FUNCTION(this);
     auto ctrlMsgs = PopCurrentSlotCtrlMsgs();
-    ctrlMsgs.merge(RetrieveMsgsFromDCIs(m_currentSlot));
+    ctrlMsgs.splice(ctrlMsgs.end(), RetrieveMsgsFromDCIs(m_currentSlot));
 
     if (m_netDevice != nullptr)
     {
@@ -1160,6 +1160,9 @@ NrGnbPhy::RetrieveDciFromAllocation(const SlotAllocInfo& alloc,
 std::list<Ptr<NrControlMessage>>
 NrGnbPhy::RetrieveMsgsFromDCIs(const SfnSf& currentSlot)
 {
+    // IoTJ R1 determinism fix: lists are appended with splice() instead of std::list::merge().
+    // merge() orders Ptr<NrControlMessage> by raw heap address, so the order in which a UE
+    // received several DCIs in one CORESET depended on malloc layout and differed run to run.
     std::list<Ptr<NrControlMessage>> ctrlMsgs;
     uint64_t currentSlotN = currentSlot.Normalize() % m_tddPattern.size();
 
@@ -1176,7 +1179,7 @@ NrGnbPhy::RetrieveMsgsFromDCIs(const SfnSf& currentSlot)
         {
             NS_LOG_INFO(" in slot " << currentSlot << " send DL DCI for the same slot");
 
-            ctrlMsgs.merge(RetrieveDciFromAllocation(m_currSlotAllocInfo,
+            ctrlMsgs.splice(ctrlMsgs.end(), RetrieveDciFromAllocation(m_currSlotAllocInfo,
                                                      DciInfoElementTdma::DL,
                                                      k0delay,
                                                      k1delay));
@@ -1185,7 +1188,7 @@ NrGnbPhy::RetrieveMsgsFromDCIs(const SfnSf& currentSlot)
         {
             NS_LOG_INFO(" in slot " << currentSlot << " send DL DCI for " << targetSlot);
 
-            ctrlMsgs.merge(RetrieveDciFromAllocation(PeekSlotAllocInfo(targetSlot),
+            ctrlMsgs.splice(ctrlMsgs.end(), RetrieveDciFromAllocation(PeekSlotAllocInfo(targetSlot),
                                                      DciInfoElementTdma::DL,
                                                      k0delay,
                                                      k1delay));
@@ -1206,7 +1209,7 @@ NrGnbPhy::RetrieveMsgsFromDCIs(const SfnSf& currentSlot)
         {
             NS_LOG_INFO(" in slot " << currentSlot << " send UL DCI for the same slot");
 
-            ctrlMsgs.merge(RetrieveDciFromAllocation(m_currSlotAllocInfo,
+            ctrlMsgs.splice(ctrlMsgs.end(), RetrieveDciFromAllocation(m_currSlotAllocInfo,
                                                      DciInfoElementTdma::UL,
                                                      k2delay,
                                                      k1delay));
@@ -1215,7 +1218,7 @@ NrGnbPhy::RetrieveMsgsFromDCIs(const SfnSf& currentSlot)
         {
             NS_LOG_INFO(" in slot " << currentSlot << " send UL DCI for " << targetSlot);
 
-            ctrlMsgs.merge(RetrieveDciFromAllocation(PeekSlotAllocInfo(targetSlot),
+            ctrlMsgs.splice(ctrlMsgs.end(), RetrieveDciFromAllocation(PeekSlotAllocInfo(targetSlot),
                                                      DciInfoElementTdma::UL,
                                                      k2delay,
                                                      k1delay));

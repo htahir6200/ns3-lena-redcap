@@ -28,13 +28,26 @@ NrPhySapProvider::readPrachCSV(std::istream &in)
           }
         auto fields = readCSVRow (row);
         PrachConfig tmp = PrachConfig( fields[1],stoi (fields[2]),stoi (fields[3]),stoi (fields[5]),stof (fields[6]),stof (fields[7]),stoi (fields[8]));
-        for (char c : fields[4])
+        // Subframe list, e.g. "1:4:6:9". IoTJ R1 fix: the original code called atoi(&c) on a
+        // single char, which reads past the variable (stack-buffer-overflow, found with ASan)
+        // and could mis-parse the subframe depending on adjacent stack bytes.
         {
-            if( c != ':')
+            std::string token;
+            for (char c : fields[4] + ":")
             {
-                tmp.m_SfN.emplace_back((uint8_t)atoi(&c));
+                if (c == ':')
+                {
+                    if (!token.empty())
+                    {
+                        tmp.m_SfN.emplace_back(static_cast<uint8_t>(std::stoi(token)));
+                    }
+                    token.clear();
+                }
+                else if (c >= '0' && c <= '9')
+                {
+                    token.push_back(c);
+                }
             }
-          
         }
         table.emplace_back(tmp);
     }
