@@ -1,0 +1,5 @@
+[
+ {"name":"xload","red_cap_config":[1,2,3],"num_ues":40,"interval_s":[0.04,0.03,0.025,0.02],"drain_s":10.0,"fix_dl_pdcch_prefilter":true,"seeds":[1]},
+ {"name":"xdense","red_cap_config":[1,2,3],"num_ues":[240,320],"interval_s":0.2,"drain_s":10.0,"fix_dl_pdcch_prefilter":true,"seeds":[1]},
+ {"name":"xdense2","red_cap_config":3,"num_ues":[100,120],"interval_s":0.2,"drain_s":10.0,"fix_dl_pdcch_prefilter":true,"seeds":[1]}
+]
