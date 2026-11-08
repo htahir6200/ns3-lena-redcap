@@ -65,6 +65,8 @@ class Job:
     drain_s: float = 0.0
     mcs_override: int = -1
     eredcap_power_offset_db: int = 6
+    dl_cce_reserve: int = 0  # CCEs per CORESET occasion kept for DL DCIs (0 = off)
+    fix_dl_pdcch_prefilter: bool = False  # non-reserving DL PDCCH pre-filter (R1 scheduler fix)
 
     @property
     def config_name(self) -> str:
@@ -94,6 +96,8 @@ class Job:
             f"--drainS={self.drain_s}",
             f"--mcsOverride={self.mcs_override}",
             f"--eredcapPowerOffsetDb={self.eredcap_power_offset_db}",
+            f"--dlCceReserve={self.dl_cce_reserve}",
+            f"--fixDlPdcchPrefilter={b(self.fix_dl_pdcch_prefilter)}",
         ]
 
 

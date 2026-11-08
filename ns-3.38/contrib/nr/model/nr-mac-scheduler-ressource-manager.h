@@ -118,9 +118,19 @@ namespace ns3 {
         void moveRessourceBufferValues();
         void configureBwp(uint16_t bwpIndex, uint16_t bwInRBG, uint8_t coresetSymbols);
         void SetPattern(const std::string& pattern);
-        bool checkPdcchUsage(bool reserve, uint64_t slotnumber,uint8_t bwpID);
+        bool checkPdcchUsage(bool reserve, uint64_t slotnumber,uint8_t bwpID, uint16_t keepFree = 0);
+        /// IoTJ R1: number of still-free CCEs of the CORESET in this slot/BWP.
+        uint16_t countFreeCce(uint64_t slotnumber, uint8_t bwpID);
+        /// IoTJ R1: an UL DCI may only take a CCE if more than n CCEs stay free for DL DCIs
+        /// (protects DL assignments, e.g. RLC STATUS, from UL-grant starvation). 0 = off.
+        void SetDlCceReservation(uint16_t n) { m_dlCceReserve = n; }
+        uint16_t GetDlCceReservation() const { return m_dlCceReserve; }
         bool markViablePdcchRessource(bool Msg3, SfnSf sfnsf,uint16_t rnti, uint8_t bwpID);
-        bool pdcchAvailableInSearchSpace(bool Msg3, SfnSf sfnsf,uint16_t rnti, uint8_t bwpID);
+        bool pdcchAvailableInSearchSpace(bool Msg3, SfnSf sfnsf,uint16_t rnti, uint8_t bwpID, bool countStats = true);
+        /// IoTJ R1: if true, the DL active-UE pre-filter uses a non-reserving PDCCH check
+        /// (the original code reserved a CCE per active DL UE before scheduling).
+        void SetFixDlPdcchPrefilter(bool fix) { m_fixDlPdcchPrefilter = fix; }
+        bool GetFixDlPdcchPrefilter() const { return m_fixDlPdcchPrefilter; }
         bool isAlreadyScheduled(uint16_t rnti, SfnSf sfnsf, uint8_t bwpID);
         void CreateSearchSpace(uint16_t rnti,uint16_t periodicity,uint16_t offset,uint16_t duration);  
         void UpdateRntiMap(uint64_t imsi, uint16_t rnti);
@@ -155,6 +165,8 @@ namespace ns3 {
         UeRessourceUsage calculateUeSpecificCapacityUsage(uint16_t endInitialization,uint16_t followUpTime, uint16_t numUe );
         uint8_t  m_numBwp;
         bool m_use5MHz;
+        uint16_t m_dlCceReserve{0};
+        bool m_fixDlPdcchPrefilter{false};
         uint16_t m_rbPerBwp{51}; //!< RBs (RBGs) per RedCap BWP; 51@20 MHz μ=1, 12@5 MHz μ=1
 
         protected:

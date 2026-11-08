@@ -251,6 +251,8 @@ main(int argc, char* argv[])
     double drainS = 0.0;
     int16_t mcsOverride = -1;
     int16_t eredcapPowerOffsetDb = 6;
+    uint16_t dlCceReserve = 0;
+    bool fixDlPdcchPrefilter = false;
     // For redCapConfig=3: true = real 5 MHz BWP (FGCS); false = IoTJ capability-style (20 MHz + ¼-RB).
     bool true5MHz = true;
     // Phase C energy fidelity
@@ -334,6 +336,12 @@ main(int argc, char* argv[])
     cmd.AddValue("eredcapPowerOffsetDb",
                  "IoTJ R1: eRedCap UE TX power reduction in dB (default 6)",
                  eredcapPowerOffsetDb);
+    cmd.AddValue("fixDlPdcchPrefilter",
+                 "IoTJ R1: non-reserving DL active-UE PDCCH pre-filter (fixes RLC STATUS starvation)",
+                 fixDlPdcchPrefilter);
+    cmd.AddValue("dlCceReserve",
+                 "IoTJ R1: CCEs per CORESET occasion that UL DCIs may not take (kept for DL); 0 = off",
+                 dlCceReserve);
     cmd.AddValue("intervall","used intervall for transmitting data", transmissionIntervall);
     cmd.AddValue("packetSize","used packetSize for datastream", packetSize);
     cmd.AddValue("inactivityTimer", "Timer to release the connection after it´s expiration",m_dataInactivityTimer);
@@ -489,7 +497,7 @@ main(int argc, char* argv[])
               << " mcs=" << +McsToBeUsed << " mimoLayerArg=" << +mimo_layer
               << " ueTxPowerDbm=" << transmitPower << " errorModel=" << m_useErrorModel
               << " harqReTx=" << enableHarqReTx << " strictPhy=" << strictPhy
-              << " drainS=" << drainS << " simTime=" << simTime << " seed=" << seed
+              << " drainS=" << drainS << " dlCceReserve=" << dlCceReserve << " fixDlPdcchPrefilter=" << fixDlPdcchPrefilter << " simTime=" << simTime << " seed=" << seed
               << " interval=" << transmissionIntervall << " packetSize=" << packetSize
               << " ues=" << enddevicesNumPergNb << " embbUes=" << embbUes << std::endl;
 
@@ -806,6 +814,8 @@ main(int argc, char* argv[])
         std::filesystem::create_directories(cellLogDir);
         auto mgr = std::make_unique<NrMacSchedulerRessourceManager>(
             pattern, 1, simTime, initTime / 1000, cellLogDir, bwpCount, use5MHz, rbPerBwp);
+        mgr->SetDlCceReservation(dlCceReserve);
+        mgr->SetFixDlPdcchPrefilter(fixDlPdcchPrefilter);
         NodeContainer oneGnb;
         oneGnb.Add(gNbNodes.Get(g));
         NetDeviceContainer d =

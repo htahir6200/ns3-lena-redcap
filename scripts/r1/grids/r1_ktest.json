@@ -1,0 +1,6 @@
+[
+ {"name":"kmin","red_cap_config":1,"num_ues":40,"interval_s":0.05,"drain_s":10.0,"dl_cce_reserve":[0,1,2],"seeds":[2,4]},
+ {"name":"kmax","red_cap_config":2,"num_ues":40,"interval_s":0.05,"drain_s":10.0,"dl_cce_reserve":[0,1,2],"seeds":[7]},
+ {"name":"ke005","red_cap_config":3,"num_ues":40,"interval_s":0.05,"drain_s":10.0,"dl_cce_reserve":[0,1,2],"seeds":[1]},
+ {"name":"ke160","red_cap_config":3,"num_ues":160,"interval_s":0.2,"drain_s":10.0,"dl_cce_reserve":[0,1,2],"seeds":[1]}
+]

@@ -2724,14 +2724,27 @@ NrMacSchedulerNs3::ScheduleDLWithResManager(const NrMacSchedSapProvider::SchedDl
         for (auto ueIt = ueInfos.begin(); ueIt != ueInfos.end();)
         {
             GetFirst GetUeInfoPtr;            
-            if(m_manager->markViablePdcchRessource(false,params.m_snfSf,GetUeInfoPtr(*ueIt)->m_rnti, GetBwpId()))
+            // IoTJ R1: the original pre-filter called markViablePdcchRessource, which *reserves*
+            // a CCE for every active DL UE before any DL scheduling. With many UEs holding small
+            // DL payloads (e.g. RLC STATUS PDUs under heavy UL), these reservations exhausted the
+            // CORESET, the DL loop then found no free CCE, STATUS PDUs were never sent and RLC AM
+            // stalled. With the fix the pre-filter is a non-reserving reachability check.
+            const bool reachable =
+                m_manager->GetFixDlPdcchPrefilter()
+                    ? m_manager->pdcchAvailableInSearchSpace(false, params.m_snfSf, GetUeInfoPtr(*ueIt)->m_rnti, GetBwpId(), false)
+                    : m_manager->markViablePdcchRessource(false,params.m_snfSf,GetUeInfoPtr(*ueIt)->m_rnti, GetBwpId());
+            if (!reachable)
+            {
+                NrCampaignStats::Inc("sched.dl.prefilter_removed");
+            }
+            if(reachable)
             {
                 NS_LOG_DEBUG("Searchspace for RNTI "<<GetUeInfoPtr(*ueIt)->m_rnti<< "available");  
                 ++ueIt;          
             }
             else{
                 NS_LOG_DEBUG("Searchspace RNTI "<<GetUeInfoPtr(*ueIt)->m_rnti<< "from active UE list -> no available SearchSpace"); 
-                ueInfos.erase(ueIt);
+                ueIt = ueInfos.erase(ueIt); // IoTJ R1: do not reuse an invalidated iterator
                 //std::cout<<"no viable searchspace for rnti: "<< GetUeInfoPtr(*ueIt)->m_rnti<< std::endl;
                 continue;
             } 
@@ -2750,7 +2763,7 @@ NrMacSchedulerNs3::ScheduleDLWithResManager(const NrMacSchedSapProvider::SchedDl
             GetFirst GetUeInfoPtr;
             if(m_ueMap.find(GetUeInfoPtr(*ueIt)->m_rnti) == m_ueMap.end())
             {
-                ueInfos.erase(ueIt);
+                ueIt = ueInfos.erase(ueIt); // IoTJ R1: do not reuse an invalidated iterator
                 //std::cout<<"removed ue "<<GetUeInfoPtr(*ueIt)->m_rnti<< " from scheduling"<<std::endl;
                 continue;
             }
@@ -3223,7 +3236,7 @@ NrMacSchedulerNs3::DoScheduleUlWithResManager(const std::vector<UlHarqInfo>& ulH
             GetFirst GetUeInfoPtr;
             if(m_ueMap.find(GetUeInfoPtr(*ueIt)->m_rnti) == m_ueMap.end())
             {
-                ueInfos.erase(ueIt);
+                ueIt = ueInfos.erase(ueIt); // IoTJ R1: do not reuse an invalidated iterator
                 //std::cout<<"removed ue "<<GetUeInfoPtr(*ueIt)->m_rnti<< " from scheduling"<<std::endl;
                 continue;
             }

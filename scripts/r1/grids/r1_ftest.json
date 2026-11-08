@@ -1,0 +1,7 @@
+[
+ {"name":"fmin","red_cap_config":1,"num_ues":40,"interval_s":0.05,"drain_s":10.0,"fix_dl_pdcch_prefilter":[false,true],"seeds":[1,2,4]},
+ {"name":"fmax","red_cap_config":2,"num_ues":40,"interval_s":0.05,"drain_s":10.0,"fix_dl_pdcch_prefilter":true,"seeds":[7]},
+ {"name":"fe005","red_cap_config":3,"num_ues":40,"interval_s":0.05,"drain_s":10.0,"fix_dl_pdcch_prefilter":true,"seeds":[1]},
+ {"name":"fe160","red_cap_config":3,"num_ues":160,"interval_s":0.2,"drain_s":10.0,"fix_dl_pdcch_prefilter":true,"seeds":[1]},
+ {"name":"fe01","red_cap_config":3,"num_ues":40,"interval_s":0.1,"drain_s":10.0,"fix_dl_pdcch_prefilter":true,"seeds":[1]}
+]

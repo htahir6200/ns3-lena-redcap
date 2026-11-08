@@ -28,7 +28,7 @@ T95 = {1: 12.706, 2: 4.303, 3: 3.182, 4: 2.776, 5: 2.571, 6: 2.447, 7: 2.365, 8:
 
 KEY_FIELDS = ["red_cap_config", "config_name", "num_ues", "interval_s", "sim_time", "packet_size",
               "embb_ues", "error_model", "enable_harq", "true_5mhz", "strict_phy", "drain_s",
-              "mcs_override", "eredcap_power_offset_db"]
+              "mcs_override", "eredcap_power_offset_db", "dl_cce_reserve", "fix_dl_pdcch_prefilter"]
 
 
 def t95(df: int) -> float:
@@ -67,6 +67,9 @@ def metrics(row: dict) -> dict:
     cand = f(row, "rev.sched.ul.ue_slot_candidates")
     out["ul_attempts"] = cand
     out["ul_blocked_pdcch_pct"] = 100 * f(row, "rev.sched.ul.not_scheduled.pdcch") / cand if cand > 0 else 0.0
+    out["ul_refused_dl_reserve_pct"] = 100 * f(row, "rev.sched.pdcch_dl_reserve_refusals") / cand if cand > 0 else 0.0
+    dlc = f(row, "rev.sched.pdcch_check.dl.ok") + f(row, "rev.sched.pdcch_check.dl.no_free_cce")
+    out["dl_blocked_pdcch_pct"] = 100 * f(row, "rev.sched.pdcch_check.dl.no_free_cce") / dlc if dlc > 0 else 0.0
     out["ul_blocked_no_rb_pct"] = 100 * f(row, "rev.sched.ul.not_scheduled.no_rb") / cand if cand > 0 else 0.0
     used, free = f(row, "rev.res.pdcch_coreset_cells_used"), f(row, "rev.res.pdcch_coreset_cells_free")
     out["coreset_util_pct"] = 100 * used / (used + free) if used + free > 0 else float("nan")

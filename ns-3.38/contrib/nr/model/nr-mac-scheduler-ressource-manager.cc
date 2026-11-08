@@ -1683,9 +1683,35 @@ namespace ns3
         m_pattern = vector;
     }
 
-    bool 
-    NrMacSchedulerRessourceManager::checkPdcchUsage(bool reserve ,uint64_t slotnumber,uint8_t bwpID)
+    uint16_t
+    NrMacSchedulerRessourceManager::countFreeCce(uint64_t slotnumber, uint8_t bwpID)
     {
+        const uint64_t indexSlot = slotnumber * m_numSym % m_ressourceWindowElements;
+        const uint8_t rbPerCce = 6 / coresetMap.at(bwpID);
+        uint16_t freeCells = 0;
+        for (uint i = bwpRessourceMap.at(bwpID).getLowerBorder(); i < bwpRessourceMap.at(bwpID).getUpperBorder(); ++i)
+        {
+            if (m_ressourcen[indexSlot][i] == RessourceAllocationStatus::CORESET)
+            {
+                ++freeCells;
+            }
+        }
+        return rbPerCce > 0 ? freeCells / rbPerCce : 0;
+    }
+
+    bool
+    NrMacSchedulerRessourceManager::checkPdcchUsage(bool reserve ,uint64_t slotnumber,uint8_t bwpID, uint16_t keepFree)
+    {
+        // IoTJ R1: DL CCE reservation. An UL DCI is refused if taking a CCE would leave
+        // keepFree or fewer CCEs for DL assignments in this CORESET occasion.
+        if (keepFree > 0 && countFreeCce(slotnumber, bwpID) <= keepFree)
+        {
+            if (!reserve)
+            {
+                NrCampaignStats::Inc("sched.pdcch_dl_reserve_refusals");
+            }
+            return false;
+        }
         /* 
             This function searched free PDCCH-ressources for a given slot and bwp. If the flag reserve is set, then a set of ressources are getting marked as used. Marked ressources cannot be used by other devices and therefore the amount 
             of possible DCI transmissions is limited per slot. The real transmission uses TDMA with unlimited ressources. 
@@ -1734,6 +1760,8 @@ namespace ns3
         /* 
             This function is similiar to 'pdcchAvailableInSearchSpace'. The difference is that this one marks ressources by setting the 'reserve' flag for reserve 'checkPdcchUsage'
         */ 
+        const uint64_t tgtSlotM = sfnsf.GetFrame() * sfnsf.GetSlotPerSubframe() * sfnsf.GetSubframesPerFrame() + sfnsf.GetSubframe() * sfnsf.GetSlotPerSubframe() + sfnsf.GetSlot();
+        const uint16_t keepFreeM = (!Msg3 && m_pattern[tgtSlotM % m_pattern.size()] == ns3::UL) ? m_dlCceReserve : 0;
         uint16_t slotsUntilTransmission = sfnsf.GetFrame() * sfnsf.GetSlotPerSubframe() * sfnsf.GetSubframesPerFrame() +sfnsf.GetSubframe() * sfnsf.GetSlotPerSubframe()+ sfnsf.GetSlot()- Simulator::Now ().GetMicroSeconds()* pow(2,m_numerology)/1000;
         
         if(m_searchSpaces.find(rnti) != m_searchSpaces.end())
@@ -1750,7 +1778,7 @@ namespace ns3
                     if(m_pattern[slotnumber%m_pattern.size()] == ns3::DL ||m_pattern[slotnumber%m_pattern.size()] == ns3::F ||m_pattern[slotnumber%m_pattern.size()] == ns3::S)
                     {
                     
-                        if(checkPdcchUsage(true,slotnumber,bwpID))
+                        if(checkPdcchUsage(true,slotnumber,bwpID,keepFreeM))
                         {
                             return true; 
                         }
@@ -1769,17 +1797,19 @@ namespace ns3
     }
 
     bool
-    NrMacSchedulerRessourceManager::pdcchAvailableInSearchSpace(bool Msg3, SfnSf sfnsf,uint16_t rnti, uint8_t bwpID)
+    NrMacSchedulerRessourceManager::pdcchAvailableInSearchSpace(bool Msg3, SfnSf sfnsf,uint16_t rnti, uint8_t bwpID, bool countStats)
     {
         /*This function checks the possibility to schedule data to the ue.
         First it is checked ehether the ue is already scheduled in the same slot. After that a possible DL slot for scheduling is checked with the configured searchspace. 
         This function returns true if a DL-slot has free PDCCH-capaties. Note: this function does not reserve them. This is dont after scheduling
         */
         const uint64_t tgtSlot = sfnsf.GetFrame() * sfnsf.GetSlotPerSubframe() * sfnsf.GetSubframesPerFrame() + sfnsf.GetSubframe() * sfnsf.GetSlotPerSubframe() + sfnsf.GetSlot();
-        const std::string pdcchKey = std::string("sched.pdcch_check.") + (m_pattern[tgtSlot % m_pattern.size()] == ns3::UL ? "ul." : "dl.");
+        const bool tgtIsUl = m_pattern[tgtSlot % m_pattern.size()] == ns3::UL;
+        const std::string pdcchKey = std::string("sched.pdcch_check.") + (tgtIsUl ? "ul." : "dl.");
+        const uint16_t keepFree = (!Msg3 && tgtIsUl) ? m_dlCceReserve : 0;
         if(!Msg3 && isAlreadyScheduled(rnti,sfnsf,bwpID))
         {
-            NrCampaignStats::Inc(pdcchKey + "already_scheduled");
+            if (countStats) { NrCampaignStats::Inc(pdcchKey + "already_scheduled"); }
             return false;
         }
 
@@ -1798,19 +1828,19 @@ namespace ns3
                     //a possible DL-slot in the seach space is found
                     if(m_pattern[slotnumber%m_pattern.size()] == ns3::DL ||m_pattern[slotnumber%m_pattern.size()] == ns3::F ||m_pattern[slotnumber%m_pattern.size()] == ns3::S)
                     {
-                        if(checkPdcchUsage(false,slotnumber,bwpID))
+                        if(checkPdcchUsage(false,slotnumber,bwpID,keepFree))
                         {
-                            NrCampaignStats::Inc(pdcchKey + "ok");
+                            if (countStats) { NrCampaignStats::Inc(pdcchKey + "ok"); }
                             return true; 
                         }                                 
                     }
                 }           
             }
-            NrCampaignStats::Inc(pdcchKey + "no_free_cce");
+            if (countStats) { NrCampaignStats::Inc(pdcchKey + "no_free_cce"); }
             return false; 
         }
         else{
-            NrCampaignStats::Inc(pdcchKey + "no_search_space");
+            if (countStats) { NrCampaignStats::Inc(pdcchKey + "no_search_space"); }
             return true; //no searchspace is set. Common Search Space not implemented 
         }    
     }
