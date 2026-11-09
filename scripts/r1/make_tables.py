@@ -111,11 +111,13 @@ def t_dense(out: Path) -> None:
         " & ".join(["Offered [Mb/s]"] + [f"${int(n) * 5000 * 8 / 0.2 / 1e6:.0f}$" for n in Ns]) + r" \\",
         r"\midrule",
     ]
+    lines.append(r"\multicolumn{" + str(len(Ns) + 1) + r"}{@{}l}{\emph{PDR at traffic stop [\%]}} \\")
     for c in ("1", "2", "3"):
-        cells = []
-        for n in Ns:
-            r = one(base, red_cap_config=c, num_ues=n, interval_s="0.2")
-            cells.append(f"{pm(r, 'pdr_at_stop')}~/~{num(v(r, 'delay_ms'), 0)}")
+        cells = [pm(one(base, red_cap_config=c, num_ues=n, interval_s="0.2"), "pdr_at_stop") for n in Ns]
+        lines.append(" & ".join([CLS[c]] + cells) + r" \\")
+    lines += [r"\midrule", r"\multicolumn{" + str(len(Ns) + 1) + r"}{@{}l}{\emph{Mean delay of delivered packets [ms]}} \\"]
+    for c in ("1", "2", "3"):
+        cells = [num(v(one(base, red_cap_config=c, num_ues=n, interval_s="0.2"), "delay_ms"), 0) for n in Ns]
         lines.append(" & ".join([CLS[c]] + cells) + r" \\")
     lines += [r"\bottomrule", r"\end{tabular}"]
     write(out, "tab_dense", "\n".join(lines) + "\n")
@@ -188,12 +190,56 @@ def t_coex(out: Path) -> None:
     write(out, "tab_coex", "\n".join(l for l in lines if l) + "\n")
 
 
+def t_onefactor(out: Path) -> None:
+    """One-factor-at-a-time ladder from RedCap-min (Reviewer 2, comment 1), paired seeds 1-5."""
+    import statistics as st
+    rows = []
+    for f in ("f_base", "f_mcs"):
+        rows += list(csv.DictReader((R1 / f"{f}_summary.csv").open()))
+
+    def sel(cfg, mcs="-1", pwr="6"):
+        return [r for r in rows if r["red_cap_config"] == cfg and r["mcs_override"] == mcs
+                and r["eredcap_power_offset_db"] == pwr and r["num_ues"] == "40" and int(r["seed"]) <= 5]
+
+    def gp(rs, t):
+        x = [float(r["ts.goodput_2nd_half_mbps"]) for r in rs if r["interval_s"] == t]
+        return st.mean(x) if x else float("nan")
+
+    def blk(rs, t):
+        x = []
+        for r in rs:
+            if r["interval_s"] != t:
+                continue
+            c = float(r.get("rev.sched.ul.ue_slot_candidates") or 0)
+            x.append(100 * float(r.get("rev.sched.ul.not_scheduled.pdcch") or 0) / c if c else 0.0)
+        return st.mean(x) if x else float("nan")
+
+    ladder = [
+        ("RedCap-min (reference)", "---", sel("1")),
+        ("+ $2{\\times}2$ array", "antenna", sel("2", "19")),
+        ("+ MCS 27", "MCS", sel("1", "27")),
+        ("+ $2{\\times}2$ array + MCS 27 (= RedCap-max)", "antenna, MCS", sel("2")),
+        ("+ 12-PRB grant cap", "grant cap", sel("3", "-1", "0")),
+        ("+ 12-PRB cap + $-6$\\,dB (= eRedCap)", "grant cap, power", sel("3")),
+        ("+ 12-PRB cap + $-6$\\,dB + MCS 27", "grant cap, power, MCS", sel("3", "27")),
+    ]
+    lines = [r"\begin{tabular}{@{}lccc@{}}", r"\toprule",
+             r"Configuration (changes from RedCap-min) & \multicolumn{2}{c}{Goodput [Mb/s]} & PDCCH-blocked [\%] \\",
+             r" & 53\,Mb/s & 64\,Mb/s & 64\,Mb/s \\", r"\midrule"]
+    for label, _, rs in ladder:
+        if not rs:
+            raise SystemExit(f"no rows for {label}")
+        lines.append(f"{label} & {num(gp(rs, '0.03'))} & {num(gp(rs, '0.025'))} & {num(blk(rs, '0.025'))} \\\\")
+    lines += [r"\bottomrule", r"\end{tabular}"]
+    write(out, "tab_onefactor", "\n".join(lines) + "\n")
+
+
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--out", default=str(ROOT / "paper" / "iotj" / "revision_r1" / "tables"))
     a = ap.parse_args()
     out = Path(a.out)
-    for fn in (t_load, t_dense, t_bottleneck, t_mcs, t_coex):
+    for fn in (t_load, t_dense, t_bottleneck, t_mcs, t_coex, t_onefactor):
         fn(out)
     return 0
 
