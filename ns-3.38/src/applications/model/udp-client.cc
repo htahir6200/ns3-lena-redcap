@@ -225,24 +225,15 @@ UdpClient::StartApplication()
         m_expRv = CreateObject<ExponentialRandomVariable>();
         if (m_onMean.IsStrictlyPositive())
         {
-            // Start in a random phase: ON with probability on/(on+off).
+            // Start in a random phase: ON with probability on/(on+off). If OFF, the current ON
+            // period is treated as just ended, so NextGap() first skips an OFF period.
             Ptr<UniformRandomVariable> u = CreateObject<UniformRandomVariable>();
             const double pOn = m_onMean.GetSeconds() / (m_onMean + m_offMean).GetSeconds();
-            if (u->GetValue() < pOn)
-            {
-                m_onUntil = Simulator::Now() + Seconds(m_expRv->GetValue(m_onMean.GetSeconds(), 0));
-            }
-            else
-            {
-                first = Seconds(m_expRv->GetValue(m_offMean.GetSeconds(), 0));
-                m_onUntil = Simulator::Now() + first +
-                            Seconds(m_expRv->GetValue(m_onMean.GetSeconds(), 0));
-            }
+            m_onUntil = (u->GetValue() < pOn)
+                            ? Simulator::Now() + Seconds(m_expRv->GetValue(m_onMean.GetSeconds(), 0))
+                            : Simulator::Now();
         }
-        if (m_arrivalModel == 1)
-        {
-            first += NextGap();
-        }
+        first = NextGap();
     }
     m_sendEvent = Simulator::Schedule(first, &UdpClient::Send, this);
 }
@@ -250,24 +241,26 @@ UdpClient::StartApplication()
 Time
 UdpClient::NextGap()
 {
+    // IoTJ R1: inter-packet gap. Periodic or Poisson arrivals with mean Interval; with an on/off
+    // activity process the ON-period rate is scaled by (on+off)/on so the mean load is unchanged.
+    // Invariant: every packet is sent inside an ON period, and the returned gap is >= 0.
     double mean = m_interval.GetSeconds();
     if (m_onMean.IsStrictlyPositive())
     {
         mean *= m_onMean.GetSeconds() / (m_onMean + m_offMean).GetSeconds();
     }
-    Time gap = (m_arrivalModel == 1) ? Seconds(m_expRv->GetValue(mean, 0)) : Seconds(mean);
-    if (m_onMean.IsStrictlyPositive() && Simulator::Now() + gap > m_onUntil)
+    const Time now = Simulator::Now();
+    auto draw = [&]() { return (m_arrivalModel == 1) ? Seconds(m_expRv->GetValue(mean, 0)) : Seconds(mean); };
+    Time next = now + draw();
+    while (m_onMean.IsStrictlyPositive() && next > m_onUntil)
     {
-        // The ON period ends before the next packet: skip an OFF period and start a new ON one.
-        const Time off = Seconds(m_expRv->GetValue(m_offMean.GetSeconds(), 0));
-        gap = (m_onUntil - Simulator::Now()) + off;
-        m_onUntil = Simulator::Now() + gap + Seconds(m_expRv->GetValue(m_onMean.GetSeconds(), 0));
-        if (m_arrivalModel == 1)
-        {
-            gap += Seconds(m_expRv->GetValue(mean, 0));
-        }
+        // The ON period ends first: insert an OFF period, start a new ON period, and restart the
+        // arrival process at the start of that ON period.
+        const Time onStart = Max(m_onUntil, now) + Seconds(m_expRv->GetValue(m_offMean.GetSeconds(), 0));
+        m_onUntil = onStart + Seconds(m_expRv->GetValue(m_onMean.GetSeconds(), 0));
+        next = onStart + draw();
     }
-    return gap;
+    return next - now;
 }
 
 void

@@ -58,7 +58,7 @@
   "guard_sched_marks": true,
   "fix_dci_row_symbol": true,
   "drain_s": 10.0,
-  "name": "onoff11",
+  "name": "oo11",
   "red_cap_config": [
    1,
    2,
@@ -88,7 +88,7 @@
   "guard_sched_marks": true,
   "fix_dci_row_symbol": true,
   "drain_s": 10.0,
-  "name": "onoff11d",
+  "name": "oo11d",
   "red_cap_config": [
    1,
    2,
@@ -111,7 +111,7 @@
   "guard_sched_marks": true,
   "fix_dci_row_symbol": true,
   "drain_s": 10.0,
-  "name": "onoff26",
+  "name": "oo26",
   "red_cap_config": [
    1,
    2,
@@ -141,7 +141,7 @@
   "guard_sched_marks": true,
   "fix_dci_row_symbol": true,
   "drain_s": 10.0,
-  "name": "onoff26d",
+  "name": "oo26d",
   "red_cap_config": [
    1,
    2,
