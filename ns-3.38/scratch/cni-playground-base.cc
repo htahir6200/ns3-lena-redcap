@@ -1217,6 +1217,11 @@ main(int argc, char* argv[])
     endpointNodes.Add(embbUeNodes);
     Ptr<ns3::FlowMonitor> monitor = flowmonHelper.Install(endpointNodes);
     monitor->SetAttribute("DelayBinWidth", DoubleValue(0.001));
+    // IoTJ R1: FlowMonitor's default MaxPerHopDelay (10 s) silently stops counting a
+    // packet as received once it has been queued for more than 10 s. Under sustained
+    // overload the RLC queue exceeds that, so delivered bytes were under-counted and the
+    // PDR after the drain period could not recover. Count every delivered packet.
+    monitor->SetAttribute("MaxPerHopDelay", TimeValue(Seconds(1.0e6)));
     monitor->SetAttribute("JitterBinWidth", DoubleValue(0.001));
     monitor->SetAttribute("PacketSizeBinWidth", DoubleValue(20));
     Simulator::Schedule(Seconds(0.1), &progressPrint);  
