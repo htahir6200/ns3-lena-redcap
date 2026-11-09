@@ -223,15 +223,83 @@ def t_onefactor(out: Path) -> None:
         ("+ 12-PRB cap + $-6$\\,dB (= eRedCap)", "grant cap, power", sel("3")),
         ("+ 12-PRB cap + $-6$\\,dB + MCS 27", "grant cap, power, MCS", sel("3", "27")),
     ]
-    lines = [r"\begin{tabular}{@{}lccc@{}}", r"\toprule",
-             r"Configuration (changes from RedCap-min) & \multicolumn{2}{c}{Goodput [Mb/s]} & PDCCH-blocked [\%] \\",
+    lines = [r"\begin{tabularx}{\columnwidth}{@{}>{\raggedright\arraybackslash}Xccc@{}}", r"\toprule",
+             r"Configuration (change from RedCap-min) & \multicolumn{2}{c}{Goodput [Mb/s]} & PDCCH-blocked [\%] \\",
              r" & 53\,Mb/s & 64\,Mb/s & 64\,Mb/s \\", r"\midrule"]
     for label, _, rs in ladder:
         if not rs:
             raise SystemExit(f"no rows for {label}")
         lines.append(f"{label} & {num(gp(rs, '0.03'))} & {num(gp(rs, '0.025'))} & {num(blk(rs, '0.025'))} \\\\")
-    lines += [r"\bottomrule", r"\end{tabular}"]
+    lines += [r"\bottomrule", r"\end{tabularx}"]
     write(out, "tab_onefactor", "\n".join(lines) + "\n")
+
+
+def t_mcssweep(out: Path) -> None:
+    """Goodput vs MCS at 40 UEs / 0.025 s (64 Mb/s offered); daggers mark stalled runs."""
+    rows = load("f_mcssweep")
+    mcss = ["5", "10", "15", "19", "23", "27"]
+
+    def cell(c, m, k, d=1):
+        r = one(rows, red_cap_config=c, mcs_override=m)
+        x = v(r, k)
+        dag = "$^{\\dagger}$" if v(r, "stalled") > 0 else ""
+        return f"{num(0.0 if math.isnan(x) else x, d)}{dag}"
+
+    lines = [r"\begin{tabular}{@{}l" + "c" * len(mcss) + "@{}}", r"\toprule",
+             " & ".join(["MCS"] + mcss) + r" \\", r"\midrule",
+             " & ".join(["RedCap-min goodput [Mb/s]"] + [cell("1", m, "goodput_2nd_half_mbps") for m in mcss]) + r" \\",
+             " & ".join(["RedCap-max goodput [Mb/s]"] + [cell("2", m, "goodput_2nd_half_mbps") for m in mcss]) + r" \\",
+             " & ".join(["eRedCap goodput [Mb/s]"] + [cell("3", m, "goodput_2nd_half_mbps") for m in mcss]) + r" \\",
+             r"\midrule",
+             " & ".join(["RedCap-min UL PRB util. [\\%]"] + [cell("1", m, "ul_rb_util_pct") for m in mcss]) + r" \\",
+             " & ".join(["eRedCap PDCCH-blocked [\\%]"] + [cell("3", m, "ul_blocked_pdcch_pct") for m in mcss]) + r" \\",
+             " & ".join(["eRedCap CORESET util. [\\%]"] + [cell("3", m, "coreset_util_pct") for m in mcss]) + r" \\",
+             r"\bottomrule", r"\end{tabular}"]
+    write(out, "tab_mcssweep", "\n".join(lines) + "\n")
+
+
+def t_sens(out: Path) -> None:
+    """Error model / HARQ sensitivity at 40 UEs, paired seeds (original Table IX layout)."""
+    base, err = load("f_base"), load("f_err")
+    lines = [r"\begin{tabular}{@{}lcccccc@{}}", r"\toprule",
+             r" & \multicolumn{3}{c}{0.05\,s (32\,Mb/s)} & \multicolumn{3}{c}{0.03\,s (53\,Mb/s)} \\",
+             r"\cmidrule(lr){2-4}\cmidrule(lr){5-7}",
+             r"Class & off & on & on+HARQ & off & on & on+HARQ \\", r"\midrule"]
+    for c in ("1", "2", "3"):
+        cells = []
+        for t in ("0.05", "0.03"):
+            cells.append(pm(one(base, red_cap_config=c, num_ues="40", interval_s=t), "pdr_at_stop"))
+            cells.append(pm(one(err, red_cap_config=c, num_ues="40", interval_s=t, error_model="True", enable_harq="False"), "pdr_at_stop"))
+            cells.append(pm(one(err, red_cap_config=c, num_ues="40", interval_s=t, error_model="True", enable_harq="True"), "pdr_at_stop"))
+        lines.append(" & ".join([CLS[c]] + cells) + r" \\")
+    lines += [r"\bottomrule", r"\end{tabular}"]
+    write(out, "tab_sens", "\n".join(lines) + "\n")
+
+
+def t_traffic(out: Path) -> None:
+    """Traffic-model sensitivity (Reviewer 2, comment 7)."""
+    base, tr = load("f_base"), load("f_traffic")
+    models = [("Periodic", None), ("Poisson", "0.0"), ("On/off 1/1\\,s", "1.0"), ("On/off 2/6\\,s", "2.0")]
+    pts = [("40", "0.05", "pdr_at_stop", 1), ("40", "0.03", "pdr_at_stop", 1), ("240", "0.2", "pdr_at_stop", 1),
+           ("40", "0.03", "goodput_2nd_half_mbps", 1), ("40", "0.04", "delay_ms", 0)]
+
+    def row(c, on, n, t):
+        if on is None:
+            return one(base, red_cap_config=c, num_ues=n, interval_s=t)
+        return one(tr, red_cap_config=c, num_ues=n, interval_s=t, on_mean_s=on)
+
+    lines = [r"\begin{tabular}{@{}llccccc@{}}", r"\toprule",
+             r" & & \multicolumn{3}{c}{PDR at stop [\%]} & Goodput [Mb/s] & Delay [ms] \\",
+             r"\cmidrule(lr){3-5}",
+             r"Class & Traffic & 40@0.05 & 40@0.03 & 240@0.2 & 40@0.03 & 40@0.04 \\", r"\midrule"]
+    for i, c in enumerate(("1", "2", "3")):
+        for j, (lab, on) in enumerate(models):
+            cells = [num(v(row(c, on, n, t), k), d) for n, t, k, d in pts]
+            lines.append(" & ".join([CLS[c] if j == 0 else "", lab] + cells) + r" \\")
+        if i < 2:
+            lines.append(r"\midrule")
+    lines += [r"\bottomrule", r"\end{tabular}"]
+    write(out, "tab_traffic", "\n".join(lines) + "\n")
 
 
 def main() -> int:
@@ -239,7 +307,7 @@ def main() -> int:
     ap.add_argument("--out", default=str(ROOT / "paper" / "iotj" / "revision_r1" / "tables"))
     a = ap.parse_args()
     out = Path(a.out)
-    for fn in (t_load, t_dense, t_bottleneck, t_mcs, t_coex, t_onefactor):
+    for fn in (t_load, t_dense, t_bottleneck, t_mcs, t_coex, t_onefactor, t_mcssweep, t_sens, t_traffic):
         fn(out)
     return 0
 
