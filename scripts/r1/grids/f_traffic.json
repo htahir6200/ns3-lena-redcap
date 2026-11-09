@@ -1,0 +1,161 @@
+[
+ {
+  "fix_dl_pdcch_prefilter": true,
+  "retx_bsr_timer_ms": 80,
+  "guard_sched_marks": true,
+  "fix_dci_row_symbol": true,
+  "drain_s": 10.0,
+  "name": "poisson",
+  "red_cap_config": [
+   1,
+   2,
+   3
+  ],
+  "num_ues": 40,
+  "interval_s": [
+   0.1,
+   0.05,
+   0.04,
+   0.03
+  ],
+  "arrival_model": 1,
+  "on_mean_s": 0.0,
+  "off_mean_s": 0.0,
+  "seeds": [
+   1,
+   2,
+   3,
+   4,
+   5
+  ]
+ },
+ {
+  "fix_dl_pdcch_prefilter": true,
+  "retx_bsr_timer_ms": 80,
+  "guard_sched_marks": true,
+  "fix_dci_row_symbol": true,
+  "drain_s": 10.0,
+  "name": "poissond",
+  "red_cap_config": [
+   1,
+   2,
+   3
+  ],
+  "num_ues": 240,
+  "interval_s": 0.2,
+  "arrival_model": 1,
+  "on_mean_s": 0.0,
+  "off_mean_s": 0.0,
+  "seeds": [
+   1,
+   2,
+   3
+  ]
+ },
+ {
+  "fix_dl_pdcch_prefilter": true,
+  "retx_bsr_timer_ms": 80,
+  "guard_sched_marks": true,
+  "fix_dci_row_symbol": true,
+  "drain_s": 10.0,
+  "name": "onoff11",
+  "red_cap_config": [
+   1,
+   2,
+   3
+  ],
+  "num_ues": 40,
+  "interval_s": [
+   0.1,
+   0.05,
+   0.04,
+   0.03
+  ],
+  "arrival_model": 1,
+  "on_mean_s": 1.0,
+  "off_mean_s": 1.0,
+  "seeds": [
+   1,
+   2,
+   3,
+   4,
+   5
+  ]
+ },
+ {
+  "fix_dl_pdcch_prefilter": true,
+  "retx_bsr_timer_ms": 80,
+  "guard_sched_marks": true,
+  "fix_dci_row_symbol": true,
+  "drain_s": 10.0,
+  "name": "onoff11d",
+  "red_cap_config": [
+   1,
+   2,
+   3
+  ],
+  "num_ues": 240,
+  "interval_s": 0.2,
+  "arrival_model": 1,
+  "on_mean_s": 1.0,
+  "off_mean_s": 1.0,
+  "seeds": [
+   1,
+   2,
+   3
+  ]
+ },
+ {
+  "fix_dl_pdcch_prefilter": true,
+  "retx_bsr_timer_ms": 80,
+  "guard_sched_marks": true,
+  "fix_dci_row_symbol": true,
+  "drain_s": 10.0,
+  "name": "onoff26",
+  "red_cap_config": [
+   1,
+   2,
+   3
+  ],
+  "num_ues": 40,
+  "interval_s": [
+   0.1,
+   0.05,
+   0.04,
+   0.03
+  ],
+  "arrival_model": 1,
+  "on_mean_s": 2.0,
+  "off_mean_s": 6.0,
+  "seeds": [
+   1,
+   2,
+   3,
+   4,
+   5
+  ]
+ },
+ {
+  "fix_dl_pdcch_prefilter": true,
+  "retx_bsr_timer_ms": 80,
+  "guard_sched_marks": true,
+  "fix_dci_row_symbol": true,
+  "drain_s": 10.0,
+  "name": "onoff26d",
+  "red_cap_config": [
+   1,
+   2,
+   3
+  ],
+  "num_ues": 240,
+  "interval_s": 0.2,
+  "arrival_model": 1,
+  "on_mean_s": 2.0,
+  "off_mean_s": 6.0,
+  "seeds": [
+   1,
+   2,
+   3
+  ]
+ }
+]

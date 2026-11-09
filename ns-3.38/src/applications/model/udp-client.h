@@ -26,6 +26,8 @@
 #include "ns3/event-id.h"
 #include "ns3/ipv4-address.h"
 #include "ns3/ptr.h"
+#include "ns3/nstime.h"
+#include "ns3/random-variable-stream.h"
 
 namespace ns3
 {
@@ -97,6 +99,13 @@ class UdpClient : public Application
     EventId m_sendPartEvent;
     EventId m_stopEvent;
     uint32_t m_stopApp;
+    // IoTJ R1: optional stochastic arrivals (default periodic, unchanged behaviour).
+    uint32_t m_arrivalModel{0}; //!< 0 = periodic, 1 = Poisson (exponential gaps, mean Interval)
+    Time m_onMean{Seconds(0)};  //!< mean ON period of an on/off activity process (0 = always on)
+    Time m_offMean{Seconds(0)}; //!< mean OFF period of the on/off activity process
+    Time m_onUntil;             //!< end of the current ON period
+    Ptr<ExponentialRandomVariable> m_expRv; //!< created lazily, only if a stochastic model is used
+    Time NextGap();             //!< gap to the next packet under the configured model
 #ifdef NS3_LOG_ENABLE
     std::string m_peerAddressString; //!< Remote peer address string
 #endif                               // NS3_LOG_ENABLE

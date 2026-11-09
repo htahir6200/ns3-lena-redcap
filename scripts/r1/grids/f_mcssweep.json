@@ -1,0 +1,30 @@
+[
+ {
+  "fix_dl_pdcch_prefilter": true,
+  "retx_bsr_timer_ms": 80,
+  "guard_sched_marks": true,
+  "fix_dci_row_symbol": true,
+  "drain_s": 10.0,
+  "name": "mcssweep",
+  "red_cap_config": [
+   1,
+   2,
+   3
+  ],
+  "num_ues": 40,
+  "interval_s": 0.025,
+  "mcs_override": [
+   5,
+   10,
+   15,
+   19,
+   23,
+   27
+  ],
+  "seeds": [
+   1,
+   2,
+   3
+  ]
+ }
+]

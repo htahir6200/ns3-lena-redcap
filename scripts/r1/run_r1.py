@@ -72,6 +72,9 @@ class Job:
     fix_dci_row_symbol: bool = False  # DCI symbol from the row where the RB run started
     rlc_retx_always_fits: bool = False  # diagnostic only
     rlc_tx_buffer_bytes: int = 999999999
+    arrival_model: int = 0  # 0 periodic, 1 Poisson
+    on_mean_s: float = 0.0
+    off_mean_s: float = 0.0
 
     @property
     def config_name(self) -> str:
@@ -108,6 +111,9 @@ class Job:
             f"--fixDciRowSymbol={b(self.fix_dci_row_symbol)}",
             f"--rlcRetxAlwaysFits={b(self.rlc_retx_always_fits)}",
             f"--rlcTxBufferBytes={self.rlc_tx_buffer_bytes}",
+            f"--arrivalModel={self.arrival_model}",
+            f"--onMeanS={self.on_mean_s}",
+            f"--offMeanS={self.off_mean_s}",
         ]
 
 

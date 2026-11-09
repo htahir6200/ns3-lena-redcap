@@ -258,6 +258,9 @@ main(int argc, char* argv[])
     bool fixDciRowSymbol = false;
     bool rlcRetxAlwaysFits = false;
     uint32_t rlcTxBufferBytes = 999999999;
+    uint32_t arrivalModel = 0;
+    double onMeanS = 0.0;
+    double offMeanS = 0.0;
     // For redCapConfig=3: true = real 5 MHz BWP (FGCS); false = IoTJ capability-style (20 MHz + ¼-RB).
     bool true5MHz = true;
     // Phase C energy fidelity
@@ -341,6 +344,13 @@ main(int argc, char* argv[])
     cmd.AddValue("eredcapPowerOffsetDb",
                  "IoTJ R1: eRedCap UE TX power reduction in dB (default 6)",
                  eredcapPowerOffsetDb);
+    cmd.AddValue("arrivalModel",
+                 "IoTJ R1: RedCap packet arrivals: 0 = periodic (default), 1 = Poisson with mean intervall",
+                 arrivalModel);
+    cmd.AddValue("onMeanS",
+                 "IoTJ R1: mean ON time [s] of per-UE on/off activity (0 = always active); mean load preserved",
+                 onMeanS);
+    cmd.AddValue("offMeanS", "IoTJ R1: mean OFF time [s] of per-UE on/off activity", offMeanS);
     cmd.AddValue("rlcRetxAlwaysFits",
                  "IoTJ R1 diagnostic: LteRlcAm::TxOpportunityForRetxAlwaysBigEnough (not realistic)",
                  rlcRetxAlwaysFits);
@@ -386,6 +396,8 @@ main(int argc, char* argv[])
 
     cmd.Parse(argc, argv);
     NS_ABORT_MSG_IF(drainS < 0, "drainS must be >= 0");
+    NS_ABORT_MSG_IF(arrivalModel > 1, "arrivalModel must be 0 or 1");
+    NS_ABORT_MSG_IF(onMeanS < 0 || offMeanS < 0 || (onMeanS > 0) != (offMeanS > 0), "onMeanS/offMeanS must both be 0 or both > 0");
     NS_ABORT_MSG_IF(mcsOverride > 28, "mcsOverride must be -1 or 0..28");
 
     NS_ABORT_MSG_IF(redCapConfig < 1 || redCapConfig > 3,
@@ -518,7 +530,7 @@ main(int argc, char* argv[])
               << " mcs=" << +McsToBeUsed << " mimoLayerArg=" << +mimo_layer
               << " ueTxPowerDbm=" << transmitPower << " errorModel=" << m_useErrorModel
               << " harqReTx=" << enableHarqReTx << " strictPhy=" << strictPhy
-              << " drainS=" << drainS << " dlCceReserve=" << dlCceReserve << " fixDlPdcchPrefilter=" << fixDlPdcchPrefilter << " retxBsrTimerMs=" << retxBsrTimerMs << " guardSchedMarks=" << guardSchedMarks << " fixDciRowSymbol=" << fixDciRowSymbol << " rlcRetxAlwaysFits=" << rlcRetxAlwaysFits << " rlcTxBufferBytes=" << rlcTxBufferBytes << " simTime=" << simTime << " seed=" << seed
+              << " drainS=" << drainS << " dlCceReserve=" << dlCceReserve << " fixDlPdcchPrefilter=" << fixDlPdcchPrefilter << " retxBsrTimerMs=" << retxBsrTimerMs << " guardSchedMarks=" << guardSchedMarks << " fixDciRowSymbol=" << fixDciRowSymbol << " rlcRetxAlwaysFits=" << rlcRetxAlwaysFits << " rlcTxBufferBytes=" << rlcTxBufferBytes << " arrivalModel=" << arrivalModel << " onMeanS=" << onMeanS << " offMeanS=" << offMeanS << " simTime=" << simTime << " seed=" << seed
               << " interval=" << transmissionIntervall << " packetSize=" << packetSize
               << " ues=" << enddevicesNumPergNb << " embbUes=" << embbUes << std::endl;
 
@@ -1022,6 +1034,9 @@ main(int argc, char* argv[])
                 UdpClientHelper udpDlClient(ueIpIface.GetAddress(devIdx), dlPort);
                 udpDlClient.SetAttribute("PacketSize", UintegerValue(packetSize));
                 udpDlClient.SetAttribute("Interval", TimeValue(Seconds(transmissionIntervall)));
+                udpDlClient.SetAttribute("ArrivalModel", UintegerValue(arrivalModel));
+                udpDlClient.SetAttribute("OnMean", TimeValue(Seconds(onMeanS)));
+                udpDlClient.SetAttribute("OffMean", TimeValue(Seconds(offMeanS)));
                 udpDlClient.SetAttribute("MaxPackets", UintegerValue(0xFFFFFFFF));
                 udpDlClient.SetAttribute("StopApp", UintegerValue(udpAppStopTime));
                 clientApps.Add(udpDlClient.Install(remoteHost));
@@ -1035,6 +1050,9 @@ main(int argc, char* argv[])
                 UdpClientHelper udpUlClient(remoteHostAddr, ulPort);
                 udpUlClient.SetAttribute("PacketSize", UintegerValue(packetSize));
                 udpUlClient.SetAttribute("Interval", TimeValue(Seconds(transmissionIntervall)));
+                udpUlClient.SetAttribute("ArrivalModel", UintegerValue(arrivalModel));
+                udpUlClient.SetAttribute("OnMean", TimeValue(Seconds(onMeanS)));
+                udpUlClient.SetAttribute("OffMean", TimeValue(Seconds(offMeanS)));
                 udpUlClient.SetAttribute("MaxPackets", UintegerValue(0xFFFFFFFF));
                 udpUlClient.SetAttribute("StopApp", UintegerValue(udpAppStopTime));
                 clientApps.Add(udpUlClient.Install(redCapUeNodes.Get(u)));

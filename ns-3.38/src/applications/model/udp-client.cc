@@ -82,7 +82,24 @@ UdpClient::GetTypeId()
                           UintegerValue(1024),
                           MakeUintegerAccessor(&UdpClient::m_size),
                           //MakeUintegerChecker<uint32_t>(12, 65507));
-                          MakeUintegerChecker<uint32_t>(12, 4294967295));
+                          MakeUintegerChecker<uint32_t>(12, 4294967295))
+            .AddAttribute("ArrivalModel",
+                          "IoTJ R1: 0 = periodic (default), 1 = Poisson arrivals with mean Interval",
+                          UintegerValue(0),
+                          MakeUintegerAccessor(&UdpClient::m_arrivalModel),
+                          MakeUintegerChecker<uint32_t>(0, 1))
+            .AddAttribute("OnMean",
+                          "IoTJ R1: mean ON time of an exponential on/off activity process "
+                          "(0 = always on). During ON the packet rate is scaled by (on+off)/on so "
+                          "the mean offered load equals PacketSize/Interval.",
+                          TimeValue(Seconds(0)),
+                          MakeTimeAccessor(&UdpClient::m_onMean),
+                          MakeTimeChecker())
+            .AddAttribute("OffMean",
+                          "IoTJ R1: mean OFF time of the on/off activity process",
+                          TimeValue(Seconds(0)),
+                          MakeTimeAccessor(&UdpClient::m_offMean),
+                          MakeTimeChecker());
                 
                 
     return tid;
@@ -202,7 +219,55 @@ UdpClient::StartApplication()
 
     m_socket->SetRecvCallback(MakeNullCallback<void, Ptr<Socket>>());
     m_socket->SetAllowBroadcast(true);
-    m_sendEvent = Simulator::Schedule(Seconds(0.0), &UdpClient::Send, this);
+    Time first = Seconds(0.0);
+    if (m_arrivalModel != 0 || m_onMean.IsStrictlyPositive())
+    {
+        m_expRv = CreateObject<ExponentialRandomVariable>();
+        if (m_onMean.IsStrictlyPositive())
+        {
+            // Start in a random phase: ON with probability on/(on+off).
+            Ptr<UniformRandomVariable> u = CreateObject<UniformRandomVariable>();
+            const double pOn = m_onMean.GetSeconds() / (m_onMean + m_offMean).GetSeconds();
+            if (u->GetValue() < pOn)
+            {
+                m_onUntil = Simulator::Now() + Seconds(m_expRv->GetValue(m_onMean.GetSeconds(), 0));
+            }
+            else
+            {
+                first = Seconds(m_expRv->GetValue(m_offMean.GetSeconds(), 0));
+                m_onUntil = Simulator::Now() + first +
+                            Seconds(m_expRv->GetValue(m_onMean.GetSeconds(), 0));
+            }
+        }
+        if (m_arrivalModel == 1)
+        {
+            first += NextGap();
+        }
+    }
+    m_sendEvent = Simulator::Schedule(first, &UdpClient::Send, this);
+}
+
+Time
+UdpClient::NextGap()
+{
+    double mean = m_interval.GetSeconds();
+    if (m_onMean.IsStrictlyPositive())
+    {
+        mean *= m_onMean.GetSeconds() / (m_onMean + m_offMean).GetSeconds();
+    }
+    Time gap = (m_arrivalModel == 1) ? Seconds(m_expRv->GetValue(mean, 0)) : Seconds(mean);
+    if (m_onMean.IsStrictlyPositive() && Simulator::Now() + gap > m_onUntil)
+    {
+        // The ON period ends before the next packet: skip an OFF period and start a new ON one.
+        const Time off = Seconds(m_expRv->GetValue(m_offMean.GetSeconds(), 0));
+        gap = (m_onUntil - Simulator::Now()) + off;
+        m_onUntil = Simulator::Now() + gap + Seconds(m_expRv->GetValue(m_onMean.GetSeconds(), 0));
+        if (m_arrivalModel == 1)
+        {
+            gap += Seconds(m_expRv->GetValue(mean, 0));
+        }
+    }
+    return gap;
 }
 
 void
@@ -243,7 +308,7 @@ UdpClient::Send()
     }
     if (m_sent < m_count || m_count == 0)
     {
-        m_sendEvent = Simulator::Schedule(m_interval, &UdpClient::Send, this);
+        m_sendEvent = Simulator::Schedule(m_expRv ? NextGap() : m_interval, &UdpClient::Send, this);
     }
 }
 
