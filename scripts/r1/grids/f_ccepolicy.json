@@ -1,0 +1,1 @@
+[{"name": "ondemand", "red_cap_config": 1, "num_ues": 40, "interval_s": 0.05, "drain_s": 10.0, "fix_dl_pdcch_prefilter": true, "seeds": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]}]

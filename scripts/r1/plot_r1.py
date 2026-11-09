@@ -171,11 +171,11 @@ def fig_backlog(out):
 def fig_stall(out):
     """Original scheduler (DL PDCCH pre-filter reserving CCEs) vs fixed scheduler."""
     fig, ax = plt.subplots(figsize=(3.45, 2.4), constrained_layout=True)
-    cases = [("r1_base_load_c1_n40_t0p05_drain_s10p0_s2", "original scheduler", "-"),
-             ("f_base_load_c1_n40_t0p05_*_s2", "corrected scheduler", "--")]
+    cases = [("r1_base_load_c1_n40_t0p05_drain_s10p0_s2", "reservation-based", "-"),
+             ("r1_ftest_fmin_c1_n40_t0p05_drain_s10p0_fix_dl_pdcch_prefilter1_s2", "on-demand", "--")]
     for pat, lab, ls in cases:
         t, tx, rx, q = ts_rows(pat)
-        ax.plot(t, rx, color=COLORS["1"], ls=ls, label=f"delivered, {lab}")
+        ax.plot(t, rx, color=COLORS["1"], ls=ls, label=f"delivered, {lab} CCE allocation")
     ax.plot(t, tx, color="0.5", lw=0.9, ls=":", label="offered")
     ax.set_xlabel("Simulated time [s]")
     ax.set_ylabel("Cumulative UL bytes [MB]")
