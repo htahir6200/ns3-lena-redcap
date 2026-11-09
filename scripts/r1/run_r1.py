@@ -70,6 +70,8 @@ class Job:
     retx_bsr_timer_ms: int = 0  # UE retxBSR-Timer (TS 38.321); 0 = original behaviour
     guard_sched_marks: bool = False  # refuse grid writes over reserved/other-UE cells
     fix_dci_row_symbol: bool = False  # DCI symbol from the row where the RB run started
+    rlc_retx_always_fits: bool = False  # diagnostic only
+    rlc_tx_buffer_bytes: int = 999999999
 
     @property
     def config_name(self) -> str:
@@ -104,6 +106,8 @@ class Job:
             f"--retxBsrTimerMs={self.retx_bsr_timer_ms}",
             f"--guardSchedMarks={b(self.guard_sched_marks)}",
             f"--fixDciRowSymbol={b(self.fix_dci_row_symbol)}",
+            f"--rlcRetxAlwaysFits={b(self.rlc_retx_always_fits)}",
+            f"--rlcTxBufferBytes={self.rlc_tx_buffer_bytes}",
         ]
 
 

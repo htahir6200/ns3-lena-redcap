@@ -256,6 +256,8 @@ main(int argc, char* argv[])
     uint32_t retxBsrTimerMs = 0;
     bool guardSchedMarks = false;
     bool fixDciRowSymbol = false;
+    bool rlcRetxAlwaysFits = false;
+    uint32_t rlcTxBufferBytes = 999999999;
     // For redCapConfig=3: true = real 5 MHz BWP (FGCS); false = IoTJ capability-style (20 MHz + ¼-RB).
     bool true5MHz = true;
     // Phase C energy fidelity
@@ -339,6 +341,12 @@ main(int argc, char* argv[])
     cmd.AddValue("eredcapPowerOffsetDb",
                  "IoTJ R1: eRedCap UE TX power reduction in dB (default 6)",
                  eredcapPowerOffsetDb);
+    cmd.AddValue("rlcRetxAlwaysFits",
+                 "IoTJ R1 diagnostic: LteRlcAm::TxOpportunityForRetxAlwaysBigEnough (not realistic)",
+                 rlcRetxAlwaysFits);
+    cmd.AddValue("rlcTxBufferBytes",
+                 "IoTJ R1: RLC TX buffer per bearer in bytes (default 999999999 = effectively unlimited)",
+                 rlcTxBufferBytes);
     cmd.AddValue("fixDciRowSymbol",
                  "IoTJ R1: build DCIs from the row where the RB run started (fixes UL grants in the PUCCH symbol)",
                  fixDciRowSymbol);
@@ -510,7 +518,7 @@ main(int argc, char* argv[])
               << " mcs=" << +McsToBeUsed << " mimoLayerArg=" << +mimo_layer
               << " ueTxPowerDbm=" << transmitPower << " errorModel=" << m_useErrorModel
               << " harqReTx=" << enableHarqReTx << " strictPhy=" << strictPhy
-              << " drainS=" << drainS << " dlCceReserve=" << dlCceReserve << " fixDlPdcchPrefilter=" << fixDlPdcchPrefilter << " retxBsrTimerMs=" << retxBsrTimerMs << " guardSchedMarks=" << guardSchedMarks << " fixDciRowSymbol=" << fixDciRowSymbol << " simTime=" << simTime << " seed=" << seed
+              << " drainS=" << drainS << " dlCceReserve=" << dlCceReserve << " fixDlPdcchPrefilter=" << fixDlPdcchPrefilter << " retxBsrTimerMs=" << retxBsrTimerMs << " guardSchedMarks=" << guardSchedMarks << " fixDciRowSymbol=" << fixDciRowSymbol << " rlcRetxAlwaysFits=" << rlcRetxAlwaysFits << " rlcTxBufferBytes=" << rlcTxBufferBytes << " simTime=" << simTime << " seed=" << seed
               << " interval=" << transmissionIntervall << " packetSize=" << packetSize
               << " ues=" << enddevicesNumPergNb << " embbUes=" << embbUes << std::endl;
 
@@ -562,8 +570,9 @@ main(int argc, char* argv[])
 
     NS_ABORT_IF(numBands < 1);
 
-    Config::SetDefault("ns3::LteRlcUm::MaxTxBufferSize", UintegerValue(999999999));
-    Config::SetDefault("ns3::LteRlcAm::MaxTxBufferSize", UintegerValue(999999999));
+    Config::SetDefault("ns3::LteRlcUm::MaxTxBufferSize", UintegerValue(rlcTxBufferBytes));
+    Config::SetDefault("ns3::LteRlcAm::MaxTxBufferSize", UintegerValue(rlcTxBufferBytes));
+    Config::SetDefault("ns3::LteRlcAm::TxOpportunityForRetxAlwaysBigEnough", BooleanValue(rlcRetxAlwaysFits));
     Config::SetDefault ("ns3::NrGnbRrc::EpsBearerToRlcMapping", EnumValue(NrGnbRrc::RLC_AM_ALWAYS));
     Config::SetDefault("ns3::LteRlcAm::PollRetransmitTimer", TimeValue(MilliSeconds(200)));
     Config::SetDefault("ns3::LteRlcAm::ReorderingTimer", TimeValue(MilliSeconds(80))); //maybe has no impact on simulations

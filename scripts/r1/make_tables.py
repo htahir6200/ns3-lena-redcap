@@ -1,0 +1,202 @@
+#!/usr/bin/env python3
+"""Generate LaTeX tables for the IoTJ R1 manuscript from results/r1/f_*_agg.csv.
+
+  python3 -I scripts/r1/make_tables.py --out paper/iotj/revision_r1/tables
+
+Every number in the revised Results section should come from these files.
+"""
+
+from __future__ import annotations
+
+import argparse
+import csv
+import math
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[2]
+R1 = ROOT / "results" / "r1"
+CLS = {"1": "RedCap-min", "2": "RedCap-max", "3": "eRedCap"}
+
+
+def load(name: str) -> list[dict]:
+    return list(csv.DictReader((R1 / f"{name}_agg.csv").open()))
+
+
+def v(r: dict, k: str) -> float:
+    try:
+        return float(r[f"{k}_mean"])
+    except (KeyError, ValueError):
+        return float("nan")
+
+
+def s(r: dict, k: str) -> float:
+    try:
+        return float(r[f"{k}_std"])
+    except (KeyError, ValueError):
+        return float("nan")
+
+
+def ci(r: dict, k: str) -> float:
+    try:
+        return float(r[f"{k}_ci95"])
+    except (KeyError, ValueError):
+        return float("nan")
+
+
+def pm(r: dict, k: str, d: int = 1) -> str:
+    m, e = v(r, k), s(r, k)
+    if math.isnan(m):
+        return "---"
+    if math.isnan(e) or round(e, d) == 0:
+        return f"${m:.{d}f}$"
+    return f"${m:.{d}f}\\pm{e:.{d}f}$"
+
+
+def num(x: float, d: int = 1) -> str:
+    return "---" if math.isnan(x) else f"${x:.{d}f}$"
+
+
+def pick(rows, **kw):
+    out = []
+    for r in rows:
+        if all(str(r.get(k)) == str(val) for k, val in kw.items()):
+            out.append(r)
+    return out
+
+
+def one(rows, **kw):
+    m = pick(rows, **kw)
+    if len(m) != 1:
+        raise SystemExit(f"expected 1 row for {kw}, got {len(m)}")
+    return m[0]
+
+
+def write(out: Path, name: str, body: str) -> None:
+    out.mkdir(parents=True, exist_ok=True)
+    (out / f"{name}.tex").write_text(body)
+    print(f"wrote {out / name}.tex")
+
+
+def t_load(out: Path) -> None:
+    base = load("f_base")
+    Ts = ["0.2", "0.1", "0.05", "0.04", "0.03", "0.025"]
+    lines = [
+        r"\begin{tabular}{@{}l" + "c" * len(Ts) + "@{}}",
+        r"\toprule",
+        " & ".join(["Class"] + [f"{t}\\,s" for t in Ts]) + r" \\",
+        " & ".join(["Offered [Mb/s]"] + [f"${40 * 5000 * 8 / float(t) / 1e6:.0f}$" for t in Ts]) + r" \\",
+        r"\midrule",
+    ]
+    for c in ("1", "2", "3"):
+        cells = []
+        for t in Ts:
+            r = one(base, red_cap_config=c, num_ues="40", interval_s=t)
+            cells.append(pm(r, "pdr_at_stop"))
+        lines.append(" & ".join([CLS[c]] + cells) + r" \\")
+    lines += [r"\midrule", r"\multicolumn{" + str(len(Ts) + 1) + r"}{@{}l}{\emph{After 10\,s drain}} \\"]
+    for c in ("1", "2", "3"):
+        cells = [pm(one(base, red_cap_config=c, num_ues="40", interval_s=t), "pdr_after_drain") for t in Ts]
+        lines.append(" & ".join([CLS[c]] + cells) + r" \\")
+    lines += [r"\bottomrule", r"\end{tabular}"]
+    write(out, "tab_load", "\n".join(lines) + "\n")
+
+
+def t_dense(out: Path) -> None:
+    base = load("f_base")
+    Ns = ["40", "80", "160", "240", "320"]
+    lines = [
+        r"\begin{tabular}{@{}l" + "c" * len(Ns) + "@{}}",
+        r"\toprule",
+        " & ".join(["Class"] + [f"{n}~UE" for n in Ns]) + r" \\",
+        " & ".join(["Offered [Mb/s]"] + [f"${int(n) * 5000 * 8 / 0.2 / 1e6:.0f}$" for n in Ns]) + r" \\",
+        r"\midrule",
+    ]
+    for c in ("1", "2", "3"):
+        cells = []
+        for n in Ns:
+            r = one(base, red_cap_config=c, num_ues=n, interval_s="0.2")
+            cells.append(f"{pm(r, 'pdr_at_stop')}~/~{num(v(r, 'delay_ms'), 0)}")
+        lines.append(" & ".join([CLS[c]] + cells) + r" \\")
+    lines += [r"\bottomrule", r"\end{tabular}"]
+    write(out, "tab_dense", "\n".join(lines) + "\n")
+
+
+def t_bottleneck(out: Path) -> None:
+    """Bottleneck counters at representative saturation points (AE item 1)."""
+    base = load("f_base")
+    pts = [("1", "40", "0.03"), ("2", "40", "0.025"), ("3", "40", "0.03"),
+           ("1", "320", "0.2"), ("2", "320", "0.2"), ("3", "240", "0.2")]
+    cols = [("goodput_2nd_half_mbps", "Goodput [Mb/s]", 1),
+            ("ul_rb_util_pct", "UL RB util. [\\%]", 1),
+            ("coreset_util_pct", "CORESET util. [\\%]", 1),
+            ("ul_blocked_pdcch_pct", "UL att.\\ blocked by PDCCH [\\%]", 1),
+            ("sr_unanswered_pct", "SR unanswered [\\%]", 1),
+            ("backlog_at_stop_MB", "Backlog at stop [MB]", 1),
+            ("softfails", "PHY/sched.\\ soft-fails", 0)]
+    lines = [r"\begin{tabular}{@{}l" + "c" * len(pts) + "@{}}", r"\toprule",
+             " & ".join(["Metric"] + [f"{CLS[c]}\\\\{n}@{t}\\,s" for c, n, t in pts]).replace("\\\\", "~") + r" \\",
+             r"\midrule"]
+    rows = {p: one(base, red_cap_config=p[0], num_ues=p[1], interval_s=p[2]) for p in pts}
+    for k, label, d in cols:
+        cells = []
+        for p in pts:
+            x = v(rows[p], k)
+            cells.append(num(0.0 if math.isnan(x) else x, d))
+        lines.append(" & ".join([label] + cells) + r" \\")
+    lines += [r"\bottomrule", r"\end{tabular}"]
+    write(out, "tab_bottleneck", "\n".join(lines) + "\n")
+
+
+def t_mcs(out: Path) -> None:
+    base, mcs = load("f_base"), load("f_mcs")
+    pts = [("40", "0.03"), ("40", "0.025"), ("320", "0.2")]
+    lines = [r"\begin{tabular}{@{}llccc@{}}", r"\toprule",
+             r"Class & MCS & 40@0.03\,s & 40@0.025\,s & 320@0.2\,s \\",
+             r"\midrule"]
+
+    def g(rows, c, n, t, **kw):
+        r = one(rows, red_cap_config=c, num_ues=n, interval_s=t, **kw)
+        return f"{num(v(r, 'goodput_2nd_half_mbps'))}"
+
+    lines.append(" & ".join(["RedCap-min", "19 (native)"] + [g(base, "1", n, t) for n, t in pts]) + r" \\")
+    lines.append(" & ".join(["RedCap-min", "27"] + [g(mcs, "1", n, t, mcs_override="27") for n, t in pts]) + r" \\")
+    lines.append(" & ".join(["RedCap-max", "27 (native)"] + [g(base, "2", n, t) for n, t in pts]) + r" \\")
+    lines.append(" & ".join(["RedCap-max", "19"] + [g(mcs, "2", n, t, mcs_override="19") for n, t in pts]) + r" \\")
+    lines.append(" & ".join(["eRedCap", "19 (native)"] + [g(base, "3", n, t) for n, t in pts]) + r" \\")
+    lines.append(" & ".join(["eRedCap", "27"] + [g(mcs, "3", n, t, mcs_override="27") for n, t in pts]) + r" \\")
+    lines += [r"\bottomrule", r"\end{tabular}"]
+    write(out, "tab_mcs", "\n".join(lines) + "\n")
+
+
+def t_coex(out: Path) -> None:
+    coex = load("f_coex")
+    grids = [("40", "0.5"), ("40", "0.03"), ("240", "0.2")]
+    lines = [r"\begin{tabular}{@{}llccc@{}}", r"\toprule",
+             r"Grid & eMBB & RedCap-min & RedCap-max & eRedCap \\", r"\midrule"]
+    for n, t in grids:
+        for e in ("0", "5", "10"):
+            cells = []
+            for c in ("1", "2", "3"):
+                r = one(coex, red_cap_config=c, num_ues=n, interval_s=t, embb_ues=e)
+                rc = v(r, "pdr_at_stop") if e == "0" else v(r, "redcap_pdr_after_drain")
+                rc = v(r, "pdr_at_stop")
+                eb = v(r, "embb_pdr_after_drain")
+                cells.append(f"{num(rc)}~/~{'---' if e == '0' else num(eb)}")
+            lines.append(" & ".join([f"{n}@{t}\\,s", e] + cells) + r" \\")
+        lines.append(r"\midrule" if (n, t) != grids[-1] else "")
+    lines += [r"\bottomrule", r"\end{tabular}"]
+    write(out, "tab_coex", "\n".join(l for l in lines if l) + "\n")
+
+
+def main() -> int:
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--out", default=str(ROOT / "paper" / "iotj" / "revision_r1" / "tables"))
+    a = ap.parse_args()
+    out = Path(a.out)
+    for fn in (t_load, t_dense, t_bottleneck, t_mcs, t_coex):
+        fn(out)
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

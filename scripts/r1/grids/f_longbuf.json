@@ -1,0 +1,53 @@
+[
+ {
+  "fix_dl_pdcch_prefilter": true,
+  "retx_bsr_timer_ms": 80,
+  "guard_sched_marks": true,
+  "fix_dci_row_symbol": true,
+  "drain_s": 10.0,
+  "rlc_tx_buffer_bytes": 512000,
+  "name": "longb",
+  "red_cap_config": [
+   1,
+   2,
+   3
+  ],
+  "num_ues": 40,
+  "interval_s": 0.025,
+  "sim_time": [
+   36.0,
+   72.0,
+   144.0
+  ],
+  "seeds": [
+   1,
+   2,
+   3
+  ]
+ },
+ {
+  "fix_dl_pdcch_prefilter": true,
+  "retx_bsr_timer_ms": 80,
+  "guard_sched_marks": true,
+  "fix_dci_row_symbol": true,
+  "drain_s": 10.0,
+  "rlc_tx_buffer_bytes": 512000,
+  "name": "longbd",
+  "red_cap_config": [
+   1,
+   2,
+   3
+  ],
+  "num_ues": 320,
+  "interval_s": 0.2,
+  "sim_time": [
+   36.0,
+   72.0
+  ],
+  "seeds": [
+   1,
+   2,
+   3
+  ]
+ }
+]

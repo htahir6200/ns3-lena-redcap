@@ -1,0 +1,78 @@
+[
+ {
+  "fix_dl_pdcch_prefilter": true,
+  "retx_bsr_timer_ms": 80,
+  "guard_sched_marks": true,
+  "fix_dci_row_symbol": true,
+  "drain_s": 10.0,
+  "sim_time": 72.0,
+  "num_ues": 40,
+  "interval_s": 0.025,
+  "name": "rlcfit",
+  "red_cap_config": 1,
+  "rlc_retx_always_fits": [
+   false,
+   true
+  ],
+  "seeds": [
+   1
+  ]
+ },
+ {
+  "fix_dl_pdcch_prefilter": true,
+  "retx_bsr_timer_ms": 80,
+  "guard_sched_marks": true,
+  "fix_dci_row_symbol": true,
+  "drain_s": 10.0,
+  "sim_time": 72.0,
+  "num_ues": 40,
+  "interval_s": 0.025,
+  "name": "rlcbuf",
+  "red_cap_config": 1,
+  "rlc_tx_buffer_bytes": [
+   512000,
+   2000000
+  ],
+  "seeds": [
+   1
+  ]
+ },
+ {
+  "fix_dl_pdcch_prefilter": true,
+  "retx_bsr_timer_ms": 80,
+  "guard_sched_marks": true,
+  "fix_dci_row_symbol": true,
+  "drain_s": 10.0,
+  "sim_time": 72.0,
+  "num_ues": 40,
+  "interval_s": 0.025,
+  "name": "rlcfit",
+  "red_cap_config": 3,
+  "rlc_retx_always_fits": [
+   false,
+   true
+  ],
+  "seeds": [
+   1
+  ]
+ },
+ {
+  "fix_dl_pdcch_prefilter": true,
+  "retx_bsr_timer_ms": 80,
+  "guard_sched_marks": true,
+  "fix_dci_row_symbol": true,
+  "drain_s": 10.0,
+  "sim_time": 72.0,
+  "num_ues": 40,
+  "interval_s": 0.025,
+  "name": "rlcbuf",
+  "red_cap_config": 3,
+  "rlc_tx_buffer_bytes": [
+   512000,
+   2000000
+  ],
+  "seeds": [
+   1
+  ]
+ }
+]

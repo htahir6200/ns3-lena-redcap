@@ -28,7 +28,7 @@ T95 = {1: 12.706, 2: 4.303, 3: 3.182, 4: 2.776, 5: 2.571, 6: 2.447, 7: 2.365, 8:
 
 KEY_FIELDS = ["red_cap_config", "config_name", "num_ues", "interval_s", "sim_time", "packet_size",
               "embb_ues", "error_model", "enable_harq", "true_5mhz", "strict_phy", "drain_s",
-              "mcs_override", "eredcap_power_offset_db", "dl_cce_reserve", "fix_dl_pdcch_prefilter", "retx_bsr_timer_ms", "guard_sched_marks", "fix_dci_row_symbol"]
+              "mcs_override", "eredcap_power_offset_db", "dl_cce_reserve", "fix_dl_pdcch_prefilter", "retx_bsr_timer_ms", "guard_sched_marks", "fix_dci_row_symbol", "rlc_retx_always_fits", "rlc_tx_buffer_bytes"]
 
 
 def t95(df: int) -> float:
