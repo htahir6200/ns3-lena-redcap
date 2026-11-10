@@ -227,7 +227,7 @@ def t_onefactor(out: Path) -> None:
         ("+ cap + $-6$\\,dB + MCS 27", "grant cap, power, MCS", sel("3", "27")),
     ]
     lines = [r"\begin{tabularx}{\columnwidth}{@{}>{\raggedright\arraybackslash}Xccc@{}}", r"\toprule",
-             r"Change from RedCap-min & \multicolumn{2}{c}{Goodput [Mb/s]} & PDCCH-blocked [\%] \\",
+             r"Change from RedCap-min & \multicolumn{2}{c}{Goodput [Mb/s]} & Blocked [\%] \\",
              r" & 53\,Mb/s & 64\,Mb/s & 64\,Mb/s \\", r"\midrule"]
     for label, _, rs in ladder:
         if not rs:
