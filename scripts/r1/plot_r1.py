@@ -186,8 +186,8 @@ def fig_stall(out):
 
 def fig_coex(out):
     coex = load("f_coex")
-    # Single-column figure: compact size with fonts that stay legible at \columnwidth.
-    fig, axs = plt.subplots(1, 2, figsize=(3.5, 1.55), sharey=True, constrained_layout=True)
+    # Two-column figure placed at 0.8\textwidth.
+    fig, axs = plt.subplots(1, 2, figsize=(7.0, 2.1), sharey=True, constrained_layout=True)
     for ax, (n, t, title) in zip(axs, [("40", "0.03", "40 RedCap UEs, T = 0.03 s"),
                                          ("240", "0.2", "240 RedCap UEs, T = 0.2 s")]):
         width = 0.25
@@ -203,18 +203,18 @@ def fig_coex(out):
                 es.append(sd(r, "embb_delay_ms") / 1000.0 if pdr >= 99.5 else 0.0)
                 if pdr < 99.5:
                     ax.annotate(f"PDR {pdr:.0f} %", (len(ys) - 1 + (i - 1) * width, ys[-1]),
-                                xytext=(0, 2), textcoords="offset points", ha="center", fontsize=5)
+                                xytext=(0, 2), textcoords="offset points", ha="center", fontsize=6.5)
             ax.bar([j + (i - 1) * width for j in range(2)], ys, width, yerr=es, capsize=2,
                    color=COLORS[c], label=LABELS[c])
         ax.set_xticks([0, 1])
-        ax.set_xticklabels(["5 eMBB", "10 eMBB"], fontsize=6)
-        ax.set_title(title.replace(" RedCap UEs", " UEs"), fontsize=6.5)
+        ax.set_xticklabels(["5 eMBB UEs", "10 eMBB UEs"], fontsize=8)
+        ax.set_title(title, fontsize=8.5)
         ax.set_yscale("log")
         ax.set_ylim(5e-3, 2e3)
-        ax.tick_params(axis="y", labelsize=6)
+        ax.tick_params(axis="y", labelsize=8)
         ax.grid(axis="y", alpha=0.3)
-    axs[0].set_ylabel("eMBB mean delay [s]", fontsize=6.5)
-    axs[0].legend(loc="upper left", frameon=False, ncol=1, fontsize=5.5, handlelength=1.2, labelspacing=0.2)
+    axs[0].set_ylabel("eMBB mean delay of\ndelivered packets [s]", fontsize=8.5)
+    axs[0].legend(loc="upper left", frameon=False, ncol=3, fontsize=7.5, columnspacing=0.8)
     save(fig, out, "r1_coex_embb")
 
 
