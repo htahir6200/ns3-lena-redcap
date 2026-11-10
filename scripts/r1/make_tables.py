@@ -172,7 +172,7 @@ def t_mcs(out: Path) -> None:
 
 def t_coex(out: Path) -> None:
     coex = load("f_coex")
-    grids = [("40", "0.5"), ("40", "0.03"), ("240", "0.2")]
+    grids = [("40", "0.03"), ("240", "0.2")]
     lines = [r"\begin{tabular}{@{}llccc@{}}", r"\toprule",
              r"Grid & eMBB & RedCap-min & RedCap-max & eRedCap \\", r"\midrule"]
     for n, t in grids:
