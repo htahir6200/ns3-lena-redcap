@@ -221,10 +221,10 @@ def t_onefactor(out: Path) -> None:
         ("RedCap-min (reference)", "---", sel("1")),
         ("+ $2{\\times}2$ array", "antenna", sel("2", "19")),
         ("+ MCS 27", "MCS", sel("1", "27")),
-        ("+ $2{\\times}2$ array + MCS 27 (= RedCap-max)", "antenna, MCS", sel("2")),
+        ("+ array + MCS 27 (= RedCap-max)", "antenna, MCS", sel("2")),
         ("+ 12-PRB grant cap", "grant cap", sel("3", "-1", "0")),
-        ("+ 12-PRB cap + $-6$\\,dB (= eRedCap)", "grant cap, power", sel("3")),
-        ("+ 12-PRB cap + $-6$\\,dB + MCS 27", "grant cap, power, MCS", sel("3", "27")),
+        ("+ cap + $-6$\\,dB (= eRedCap)", "grant cap, power", sel("3")),
+        ("+ cap + $-6$\\,dB + MCS 27", "grant cap, power, MCS", sel("3", "27")),
     ]
     lines = [r"\begin{tabularx}{\columnwidth}{@{}>{\raggedright\arraybackslash}Xccc@{}}", r"\toprule",
              r"Configuration (change from RedCap-min) & \multicolumn{2}{c}{Goodput [Mb/s]} & PDCCH-blocked [\%] \\",
