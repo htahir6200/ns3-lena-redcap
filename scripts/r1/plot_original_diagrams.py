@@ -29,7 +29,7 @@ def fig_system_schematic(out: Path) -> None:
     ax.set_xlim(0, 12)
     ax.set_ylim(0, 7.4)
     ax.axis("off")
-    FS = 8.8
+    FS = 7.4
 
     def box(x, y, w, h, text, fc, ec="0.15", lw=1.15, fs=FS):
         ax.add_patch(plt.Rectangle((x, y), w, h, facecolor=fc, edgecolor=ec, lw=lw, zorder=2,
@@ -37,17 +37,17 @@ def fig_system_schematic(out: Path) -> None:
         ax.text(x + w / 2, y + h / 2, text, ha="center", va="center", fontsize=fs, zorder=3,
                 linespacing=1.3)
 
-    ax.text(2.15, 6.95, "Radio access network (single cell)", ha="center", fontsize=9.2, fontweight="bold")
+    ax.text(2.15, 6.95, "Radio access network (single cell)", ha="center", fontsize=8.0, fontweight="bold")
     box(0.25, 5.25, 3.8, 1.55, "gNB — FR1 20 MHz TDD\nMAC scheduler\nPDCCH / PUSCH", "#DEEBF7")
-    box(0.25, 3.5, 3.8, 1.5, "NR PHY + spectrum channel\n(error model optional)", "#F0F0F0", fs=8.0)
+    box(0.25, 3.5, 3.8, 1.5, "NR PHY + spectrum channel\n(error model optional)", "#F0F0F0", fs=7.0)
     box(0.25, 1.75, 3.8, 1.5, "Access plane\nPRACH · RAR · RRC\nNrAccessStats", "#FEE6CE")
 
     ax.annotate("", xy=(5.15, 5.85), xytext=(4.2, 5.85), arrowprops=dict(arrowstyle="<->", color="#3182BD", lw=1.4))
-    ax.text(4.7, 6.15, "data", ha="center", fontsize=9, color="#3182BD")
+    ax.text(4.7, 6.15, "data", ha="center", fontsize=7.6, color="#3182BD")
     ax.annotate("", xy=(5.15, 2.45), xytext=(4.2, 2.45), arrowprops=dict(arrowstyle="<->", color="#E6550D", lw=1.4))
-    ax.text(4.7, 2.75, "access", ha="center", fontsize=9, color="#E6550D")
+    ax.text(4.7, 2.75, "access", ha="center", fontsize=7.6, color="#E6550D")
 
-    ax.text(8.7, 6.95, "Device classes under test", ha="center", fontsize=9.8, fontweight="bold")
+    ax.text(8.7, 6.95, "Device classes under test", ha="center", fontsize=8.0, fontweight="bold")
     box(5.3, 5.3, 3.15, 1.5, "RedCap-min\n1×1 · MCS 19\nfull BW", "#9ECAE1")
     box(8.65, 5.3, 3.15, 1.5, "RedCap-max\n2×2 · MCS 27\nfull BW", "#A1D99B")
     box(5.3, 3.5, 6.5, 1.55, "eRedCap (capability-style)\n1×1 · MCS 19 · −6 dB\n≈¼-RB on 20 MHz BWP", "#FDBB84")
@@ -57,7 +57,7 @@ def fig_system_schematic(out: Path) -> None:
         "attach / RRC / PRACH  |  10 seeds · mean±std",
         "#FFFFF0")
 
-    ax.set_title("Simulation architecture for the dense-cell RedCap/eRedCap study", fontsize=11.5, pad=4)
+    ax.set_title("Simulation architecture for the dense-cell RedCap/eRedCap study", fontsize=9.5, pad=4)
     for ext in ("pdf", "png"):
         fig.savefig(out / f"iotj_system_architecture_r1.{ext}", dpi=300, bbox_inches="tight", pad_inches=0.04)
     plt.close(fig)
