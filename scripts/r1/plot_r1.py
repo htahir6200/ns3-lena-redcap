@@ -196,8 +196,10 @@ def fig_coex(out):
                 r = next(r for r in coex if r["red_cap_config"] == c and r["num_ues"] == n
                          and r["interval_s"] == t and r["embb_ues"] == e)
                 ys.append(m(r, "embb_delay_ms") / 1000.0)
-                es.append(sd(r, "embb_delay_ms") / 1000.0)
                 pdr = m(r, "embb_pdr_after_drain")
+                # Where most eMBB bytes are never delivered, the delay refers to the few
+                # packets that got through before saturation; its spread is not meaningful.
+                es.append(sd(r, "embb_delay_ms") / 1000.0 if pdr >= 99.5 else 0.0)
                 if pdr < 99.5:
                     ax.annotate(f"PDR {pdr:.0f} %", (len(ys) - 1 + (i - 1) * width, ys[-1]),
                                 xytext=(0, 3), textcoords="offset points", ha="center", fontsize=6)
