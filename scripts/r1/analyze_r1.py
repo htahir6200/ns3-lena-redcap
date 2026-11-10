@@ -54,6 +54,7 @@ def metrics(row: dict) -> dict:
     out["delay_ms"] = f(row, "payload_mean_delay_ms")
     out["redcap_pdr_after_drain"] = f(row, "redcap_payload_pdr")
     out["embb_pdr_after_drain"] = f(row, "embb_payload_pdr")
+    out["embb_delay_ms"] = f(row, "embb_payload_mean_delay_ms")
     out["backlog_at_stop_MB"] = f(row, "rev.atstop.ul_backlog_bytes") / 1e6
     out["backlog_at_end_MB"] = f(row, "rev.queue.ul_backlog_bytes_at_end") / 1e6
     out["ues_backlogged_at_stop"] = f(row, "rev.atstop.ues_with_backlog")

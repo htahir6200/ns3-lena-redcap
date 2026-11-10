@@ -186,7 +186,7 @@ def fig_stall(out):
 
 def fig_coex(out):
     coex = load("f_coex")
-    fig, axs = plt.subplots(1, 2, figsize=(7.0, 2.3), sharey=True, constrained_layout=True)
+    fig, axs = plt.subplots(1, 2, figsize=(7.0, 2.4), sharey=True, constrained_layout=True)
     for ax, (n, t, title) in zip(axs, [("40", "0.03", "40 RedCap UEs, T = 0.03 s"),
                                          ("240", "0.2", "240 RedCap UEs, T = 0.2 s")]):
         width = 0.25
@@ -195,16 +195,22 @@ def fig_coex(out):
             for e in ("5", "10"):
                 r = next(r for r in coex if r["red_cap_config"] == c and r["num_ues"] == n
                          and r["interval_s"] == t and r["embb_ues"] == e)
-                ys.append(m(r, "embb_pdr_after_drain"))
-                es.append(sd(r, "embb_pdr_after_drain"))
+                ys.append(m(r, "embb_delay_ms") / 1000.0)
+                es.append(sd(r, "embb_delay_ms") / 1000.0)
+                pdr = m(r, "embb_pdr_after_drain")
+                if pdr < 99.5:
+                    ax.annotate(f"PDR {pdr:.0f} %", (len(ys) - 1 + (i - 1) * width, ys[-1]),
+                                xytext=(0, 3), textcoords="offset points", ha="center", fontsize=6)
             ax.bar([j + (i - 1) * width for j in range(2)], ys, width, yerr=es, capsize=2,
                    color=COLORS[c], label=LABELS[c])
         ax.set_xticks([0, 1])
         ax.set_xticklabels(["5 eMBB UEs", "10 eMBB UEs"])
         ax.set_title(title)
-        ax.set_ylim(0, 105)
-    axs[0].set_ylabel("eMBB payload PDR [%]")
-    axs[0].legend(loc="upper left", frameon=False, ncol=1)
+        ax.set_yscale("log")
+        ax.set_ylim(5e-3, 2e3)
+        ax.grid(axis="y", alpha=0.3)
+    axs[0].set_ylabel("eMBB mean delay of\ndelivered packets [s]")
+    axs[0].legend(loc="upper left", frameon=False, ncol=3, fontsize=7, columnspacing=0.8)
     save(fig, out, "r1_coex_embb")
 
 

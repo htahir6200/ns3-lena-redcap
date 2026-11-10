@@ -180,10 +180,13 @@ def t_coex(out: Path) -> None:
             cells = []
             for c in ("1", "2", "3"):
                 r = one(coex, red_cap_config=c, num_ues=n, interval_s=t, embb_ues=e)
-                rc = v(r, "pdr_at_stop") if e == "0" else v(r, "redcap_pdr_after_drain")
                 rc = v(r, "pdr_at_stop")
                 eb = v(r, "embb_pdr_after_drain")
-                cells.append(f"{num(rc)}~/~{'---' if e == '0' else num(eb)}")
+                ed = v(r, "embb_delay_ms") / 1000.0
+                if e == "0":
+                    cells.append(f"{num(rc)}~/~---~/~---")
+                else:
+                    cells.append(f"{num(rc)}~/~{num(eb, 0)}~/~{num(ed, 2)}")
             lines.append(" & ".join([f"{n}@{t}\\,s", e] + cells) + r" \\")
         lines.append(r"\midrule" if (n, t) != grids[-1] else "")
     lines += [r"\bottomrule", r"\end{tabular}"]
